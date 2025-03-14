@@ -1,0 +1,461 @@
+#
+# 54.yaml | Twilio
+# https://www.twilio.com/blog/february-26-service-disruption-update
+#
+# A critical core service overloaded and caused a service disruption which impacted a broad set of Twilio products. They added capacity and caching to reduce load.
+# 
+#
+# Researcher Notes:
+#
+
+IR-54:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+      # We identified several improvements that will prevent the recurrence of this *specific* issue in the future. 
+      # - AI-1, AI-10 scalability
+      # - AI-2 default caching for clients
+      # - AI-4 failover
+      # - AI-3, AI-5 decoupling (protections)
+
+    - Over time / First-Fast-Then-Better (excess capacity then autoscaling):
+      # These changes will remain in place to prevent reoccurrence while we deploy additional and permanent protections and process improvements.
+      - AI-0 increased server capacity
+      - AI-1 faster autoscaling to handle spikes (less headroom needed normally)
+      - AI-2 make caching default behavior all clients (tolerating failure)
+
+    - Architecture / Decoupling clients and service (both directions):
+      - AI-2 cache on client side, softening the hard dependency
+      - AI-5 cache on service to avoid being overloaded by dependents
+      - AI-3 tune timeouts, related to "continuously retried their failed requests"
+
+    - Architecture / Broadening circles (after local fixes):
+      # To prevent *similar* issues with other services, we are taking the following steps across our engineering *organization*
+      - AI-7 auditing
+      - AI-8 architecting
+      - AI-9 automating
+
+    - Resources / Making-Headroom:
+      - AI-0 increased server capacity
+      - AI-1 faster autoscaling to handle spikes (less headroom needed normally)
+      - AI-2 make caching default behavior all clients (reducing load)
+      - AI-10 scalability (efficiency?)
+
+  memos:
+    # To resolve the immediate issue, we increased server capacity and added additional caching to reduce the load on the service. This took longer than anticipated because our standard procedure for bringing additional capacity online didn’t fully take into account the ongoing load that occurred as other services continuously retried their failed requests. These changes will remain in place to prevent reoccurrence while we deploy additional and permanent protections and process improvements.
+    - Mitigations are considered temporary
+    - Uncertainty: Mitigation not taking into account something
+
+    - Cleaning up the mess: Incident response may leave the system in a reasonable state from the user perspective, but internally there is still work to do to get systems in a state that is acceptable to engineers for multiple reasons. In this case the two *temporary to permanent* pattern instances are examples. In the first case, the system was left overscaled (to guard against future spikes in traffic) but AI-1 aims to improve the auto-scaling so being overscaled is unnecessary (saving money, presumably). A caching mechanism was put in place quickly reduce load on service, and AI-2 proposed to make that ad-hoc cache consistently and widely used across clients. 
+
+    # Further action items will be identified and shared with you as this process progresses.  
+    - Incomplete-IR: More actions can be identified later
+
+    # While the service disruption is obviously regrettable, we are using it as an opportunity to improve our processes, speed up our reaction time, increase our transparency, and live up to your understandably high expectations for customer support and service.
+    - Goal of public IR
+
+    - Best-Practice: Moving towards best practices/standards
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The root cause of the service disruption was when a critical service that manages feature-enablement for many Twilio products became overloaded. [We will] Reconfiguring the service with more aggressive auto-scaling behavior to better handle traffic spikes.
+
+    motivation:
+      experience: Service became overloaded during a traffic spike
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike, overloaded service)
+      iso:
+        - Capacity
+
+    item:
+      action: Make auto-scaling more aggressive
+      target: Service auto-scaling infrastructure (feature enablement service)
+      goal: Better handle traffic spikes
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Flexibility / Scalability (behavior at scale)
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Handle repeat event (within some range)
+        - Extend range (rate of spike)
+
+    other:
+      modification: Tune auto-scaling behavior (more aggressive)
+      activity: reconfigure
+      level: component
+
+
+  AI-2:
+    # The root cause of the service disruption was when a critical service that manages feature-enablement for many Twilio products became overloaded. [We will be] Removing this service from critical paths and making client-side caching the default behavior to prevent service unavailability.
+
+    motivation:
+      experience: Overloaded service was a critical dependency for many products, and those products did not tolerate the unavailability well
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+        - interaction between services
+      iso:
+        - Capacity
+        - Fault tolerance
+
+    item:
+      action: Remove hard dependency & make caching the default
+      target: Cache on deps of feature enablement service
+      goal: Prevent service unavailability
+
+      action-type:
+        - evo / subtract
+        - evo / add
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (to hard dep failure)
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Isolate failure (in dependents by adding caching)
+
+    other:
+      modification: Restructure critical path dependencies (by caching)
+      activity: add caching
+      level: component interactions
+
+    memos:
+      - Boundaries and control.
+
+    themes:
+      - Reducing coupling (not eliminate)
+
+  AI-3:
+    # [A critical service failed] Multiple Twilio products that rely on this feature-enablement service did not handle its failure gracefully and began to fail themselves, manifesting as customer-facing API errors and increased latency. [We will be] Reducing the service’s request timeout and refactor the service’s API to increase scalability.
+
+    motivation:
+      experience: Overloaded service was a critical dependency for many products, and those products did not tolerate the unavailability well
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+        - interaction between services
+      iso:
+        - Scalability
+        - Fault tolerance
+
+    item:
+      action: Reduce the timeout 
+      target: Request code in deps of feature enablement service
+      goal: Increase scalability
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Flexibility / Scalability (behavior at scale)
+      temporal: new
+      google-ai:
+        - prevent
+      coding: 
+        - Isolate failure (multiple symptom types)
+        - Prevent user impact
+
+    other:
+      modification: Tune (reduce) timeout 
+      level: component (interactions)
+  
+
+  AI-10:
+    motivation:
+      experience: Overloaded service was a critical dependency for many products, and those products did not tolerate the unavailability well
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+        - interaction between services
+      iso:
+        - Scalability
+        - Fault tolerance
+
+    item:
+      action: Refactor API
+      target: Feature enablement service API
+      goal: Increase scalability
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Flexibility / Scalability (behavior at scale)
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Isolate failure (multiple symptom types)
+        - Prevent user impact
+
+    other:
+      modification: Improve scalability (optimize)
+      activity: refactor # refactor part is VAGUE
+      level: component (interactions)
+
+  AI-4:
+    # [A critical service failed] Multiple Twilio products that rely on this feature-enablement service did not handle its failure gracefully and began to fail themselves, manifesting as customer-facing API errors and increased latency. [We will be] Reconfiguring the service’s failover mechanism to increase resilience in events of failures.
+
+    motivation:
+      experience: Overloaded service was a critical dependency for many products, and those products did not tolerate the unavailability well
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+        - behavior during incident
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Reconfigure the failover mechanism (VAGUE)
+      target: Feature enablement service failover mechanism configuration
+      goal: Increase resilience
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (to hard dep failure)
+      temporal: new
+      google-ai:
+        - mitigate future # reduce impact as resilience is to bounce back
+      coding:
+        - Localize failure (before dependents are affected)
+
+    other:
+      modification: Tune failover mechanism (graceful failure)
+      activity: reconfigure
+      level: component (interactions)
+
+  AI-5:
+    # To resolve the immediate issue, we increased server capacity and added additional caching to reduce the load on the service. This took longer than anticipated because our standard procedure for bringing additional capacity online didn’t fully take into account the ongoing load that occurred as other services continuously retried their failed requests. [We will be] Refactoring the server’s approach to caching to decrease workloads.
+
+    motivation:
+      experience: Service became overloaded during a traffic spike and adding capacity and caching (to reduce load) took longer than anticipated because procedure didn't take into account extra load from retries
+      lifecycle:
+        - Response / Mitigation # [TODO] is this from the human aspect?
+        - Failure / Recovery # [TODO] is this from the human aspect?
+      tags:
+        - high load (spike)
+        - manual scaling (didn't take into account extra load from retries)
+        - overloaded service
+      iso:
+        - Capacity
+
+    item:
+      action: Change caching strategy
+      target: Caching on feature enablement services dependents
+      goal: Decrease workload
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Time behavior (caching)
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Keep within range (from dependents, safe)
+
+    other:
+      modification: Modify caching logic to reduce load on dependency (VAGUE)
+      activity: refactor
+      level: component interactions
+
+
+  AI-6:
+    # Although the service disruption was detected and our on-call engineering team was notified within 1 minute, our Status Page did not update for 25 minutes which led to further customer uncertainty. [..] We are also reviewing our tooling and procedures for communicating with customers during disruptions, including via our status.twilio.com page, to ensure you have accurate and up-to-date information.
+
+    motivation:
+      experience: First status page update was late
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - delayed customer communication
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Review tooling and procedures for customer communication
+      target: Customer communication tooling and procedures
+      goal: Ensure customers have accurate and up-to-date information
+
+      action-type:
+        - formative / check
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Tech / Support
+        - Process / Customer communication
+      intended-effect:
+        - Interaction Capability / User assistance (accuracy & timeliness)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine (more timely news)
+
+    other:
+      activity: review
+
+
+  AI-7:
+    # Conducting an audit of our codebase to identify services with similar risk characteristics and remediate as appropriate.
+
+    motivation:
+      experience: UNCLEAR (a failure occurred?)
+      tags:
+        - risk of outage (similar risk characteristics) 
+
+    item:
+      action: Audit codebase for similar risk characteristics & remediate
+      target: Other services like feature enablement service
+      goal: Remove places where this could happen again
+
+      action-type:
+        - formative / check
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Address widely (where else might something similar happen)
+        - Localize or isolate failure (likely)
+
+    other:
+      modification: Fix defect (relying on feature-enablement service) across codebase # This may be similar to 53.1 in that it is a system-wide change, but the actual modifications happen at the component level
+      activity: audit, remediate 
+      level: component interactions
+
+    memos:
+      - Similar: Condition, Locality, risk characteristics
+
+  AI-8:
+    # Instituting common architecture best practices for client services to degrade more gracefully.
+
+    motivation:
+      experience: Overloaded service was a critical dependency for many products, and those products did not tolerate the unavailability well
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+        - interaction between services
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Institute common architecture (best practices)
+      target: Feature enablement service dependents
+      goal: Improve graceful degradation
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (to hard dep failure and graceful degradation)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Address widely (where else might something similar happen)
+        - Handle gracefully
+
+    other:
+      modification: Degrade more gracefully (architecture best practices)
+      activity: institute
+      level: component interactions # "client services"
+
+    memos:
+      - Best-Practice: across all clients of this common service (many parts)
+
+  AI-9:
+    # Improving our deployment tooling and on-call runbooks to better manage server fleet capacity across all our services, eliminating manual steps and shortening future time-to-recovery.
+
+    motivation:
+      experience: Took longer than the targets for diagnosis and correction (2.5 hours) and manual steps required
+      lifecycle:
+        - Response / Diagnosis
+        - Response / Mitigation
+      tags:
+        - delayed RCA (took longer than budget, required manual action)
+        - delayed mitigation (took longer than budget, required manual action)
+        - manual action required to recover (scaling)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve deployment tooling and runbooks (VAGUE)
+      target: Deployment tooling and on-call runbooks
+      goal: Better manage capacity, eliminate manual steps, and shorten future time-to-recovery
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Deployment / Tooling # deployment tooling
+        - Maintenance / TODO # on-call runbooks
+      sts:
+        - Process / Operational documentation (runbooks)
+      intended-effect:
+        - Flexibility / Scalability (management)
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine
+
+    other:
+      modification: Eliminate manual steps
+
+    themes:
+      - ungraceful recovery / manual steps in response
+      - automation / eliminate manual recovery steps

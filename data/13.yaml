@@ -1,0 +1,239 @@
+#
+# 13.yaml | Honeycomb
+# https://www.honeycomb.io/blog/incident-review-you-cant-deploy-binaries-that-dont-exist/
+#
+# Gradual failure during 4 minutes then complete outage for 8 minutes. Root cause was bad code that was deployed (a regression where a system lost a feature, committed code that didn't compile passed review and made it to master branch, build artifacts were missing and got deployed anyway)
+#
+# Researcher Notes:
+#
+
+IR-13:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # we first instituted a release freeze on the API server. Then, we conducted a retrospective to identify what we steps we'd need to take in order to unfreeze. As of today, we have added safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+
+    - Over time / Freeze-plan-fix-unfreeze: 
+      - AI-1 release freeze
+      - AI-3, AI-4, AI-5 fixes and safety improvements
+      - AI-0 unfreeze
+    
+      # MP: Halt action (deployment) to gain confidence that a repeat incident during the action (deployment) won't occur
+      # First-Fast-Then-Better: Rhymes with this pattern. (Fast) Freeze and then (Right) do RCA and add PAs to fix
+      # Prioritization: Rhymes with this pattern. Halt work to not cause further issues. Concept of "safety over innovation or development"
+      # Tradeoff: Safety over innovation/development
+      # Restoring-Trust: Added safeguards
+
+    # As with many outages, it was a combination of factors that came together to trigger the incident [regression in pipeline, straight to prod and dogfood at the same time, unhelpful health check actions]
+    - Across-Software-Life-Cycle / Layers of protection (fixing multiple factors not just one):
+      - AI-3 fix pipeline (regression) 
+      - AI-4 add health-check actions
+      - AI-5 deployment staging
+
+    # "we'd spent a large portion of our error budget during this outage [..]"
+    # - Error-budget: Allowable downtime
+    #   Always-Present-Failure: Rhymes with this pattern.
+
+    # Not this, since a failure didn't propagate along this path, it merely bypassed all safety mechanisms
+    # - Defense-Along-Propagation-Path:
+
+
+  memos:
+    # Much of the speed at which we iterate and deploy code depends on trusting that our build system is protecting us from errors like this. It’s paramount that we retain this trust in order to be able to use automated deploy systems, so the first step was to fix the regression in our build instrumentation tool and work towards rebuilding the belief that if the build is green it’s okay to deploy.
+    - Guiding-Philosophy: Philosophy that guided the choice of PAs (often implicit in reports)
+      
+    - Restoring-Trust: Restoring trust is abstract/high-level goal for most PAs in this report
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    #  As part of that work, refactoring some code led to a regression where the buildevents tool lost a feature - passing through the exit code of the commands that it runs [...] The build artifact from the non-compiling code was missing one executable, and got deployed anyway [...] As we'd spent a large portion of our error budget during this outage, we first instituted a release freeze on the API server. Then, we conducted a retrospective to identify what we steps we'd need to take in order to unfreeze. As of today, we have added safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+
+    motivation:
+      experience: Deployment related outage used up a large portion of error budget, to give time for retrospective
+      lifecycle:
+        - Pre-incident / Refactoring (build tools)
+      tags:
+        - deployment (of defect that lost a feature, since build artifact was missing an executable)
+        - carefulness
+      iso:
+        - Operational constraint (confidence)
+
+    item:
+      action: Institute release freeze
+      target: Deployment pipeline for API (automated)
+      goal: Prevent repeat incident until confidence restored
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - SDLC / Deployment
+      sts:
+        - Process / Deployment process
+      intended-effect:
+        - Safety / Operational constraint (confidence)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Freeze releases (temporarily)
+      modification2: other / freeze
+      Temporary: to be undone
+
+    memos:
+      # "we first instituted a release freeze [..] Then, we conducted a retrospective [..] As of today, we have added safeguards in several places "
+      - First-Fast-Then-Better: (Fast) Release freeze to allow retrospective then safeguards (unspecified).
+
+      # As we'd spent a large portion of our error budget during this outage,
+      - Error budget - time or money or availability quota?
+      - This is kind of a META action (do nothing until after retrospective)
+
+      # ... mitigate the chances that any of the steps above could cause a similar outage.
+      - Address a problem-class at the infrastructure layer (beyond fixing defects)
+
+      # safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+      - Defense-In-Depth: (AI-1, AI-3, AI-5) Similar outage safeguards in several places (halt to plan the defense)
+
+      - Similar: Halting to prevent "similar outage" from occurring in the near future (temporary)
+
+      - Restoring-Trust: Release freeze with a goal of confidence (safeguards)
+
+  # AI-2:
+  #   exclude: performed before the retrospective
+
+  #   #  As part of that work, refactoring some code led to a regression where the buildevents tool lost a feature - passing through the exit code of the commands that it runs [...] The build artifact from the non-compiling code was missing one executable, and got deployed anyway [...] As we'd spent a large portion of our error budget during this outage, we first instituted a release freeze on the API server. Then, we conducted a retrospective to identify what we steps we'd need to take in order to unfreeze. As of today, we have added safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+
+  AI-3:
+    # Much of the speed at which we iterate and deploy code depends on trusting that our build system is protecting us from errors like this. It’s paramount that we retain this trust in order to be able to use automated deploy systems, so the first step was to fix the regression in our build instrumentation tool and work towards rebuilding the belief that if the build is green it’s okay to deploy.
+
+    motivation:
+      experience: They deployed a latent (recent) regression (exit code handling) in the build instrumentation tool
+      lifecycle:
+        - Pre-incident / Refactoring (build tools)
+      tags:
+        - defect (exit code handling)
+        - carefulness (trust in build system)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix recent regression (fix exit-code handling for builds)
+      target: Deployment pipeline (build checks)
+      goal: Prevent deployment of non-compiling code (and build trust in "green")
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Deployment / Pipeline
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint (build system catches)
+        - Reliability / Faultlessness (trust that it is again)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix build tooling regression (error code handling)
+      level: component
+
+    memos:
+      # As of today, we have added safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+      - Defense-In-Depth: (AI-1, AI-3, AI-5) Similar outage safeguards in several places (build portion)
+
+  AI-4:
+    # We can add strength to the belief in our automated build system with real world use - we can both trust that the builds are reliable, and verify that it is indeed the case by health-checking tasks with automatic rollback, and staggering deploys by letting production lag our internal dogfooding cluster by a build. This is common practice and has long been on the list of things to do but not yet prioritized. Now it has happened.
+
+    motivation:
+      experience: Unbuildable code deployed without sufficient checks ahead of time
+      lifecycle:
+        - Failure / Inception # [TODO] Are these right?
+      tags:
+        - deployment (of defect)
+        - protection (preproduction is missing)
+        - carefulness (trust in build system)
+      iso:
+        - Operational constraint (trust deploys are good & rollback)
+
+    item:
+      action: Add health-checking tasks with automatic rollback
+      target: Health checking system for build pipeline
+      goal: Rollback bad builds that make it to production (trust and verify)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Deployment / Pipeline / Health checks
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+        - Safety / Operational constraint (trust deploys are good & rollback)
+      # As of today we have added safeguards in several places... to mitigate ... could cause a similar outage
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Automate rollback of bad deploys
+      level: component
+    
+    themes:
+      - automation / health checking deployments
+
+    memos:
+      # This is common practice and has long been on the list of things to do but not yet prioritized. Now it has happened.
+      - Prioritization: Do something that is known to be good practice but on the backlog
+
+  AI-5:
+    # We can add strength to the belief in our automated build system with real world use - we can both trust that the builds are reliable, and verify that it is indeed the case by health-checking tasks with automatic rollback, and staggering deploys by letting production lag our internal dogfooding cluster by a build. This is common practice and has long been on the list of things to do but not yet prioritized. Now it has happened.
+
+    motivation:
+      experience: Unbuildable code deployed without sufficient checks ahead of time
+      lifecycle:
+        - Failure / Inception # [TODO] Are these right?
+      tags:
+        - deployment (of defect)
+        - protection (preproduction is missing)
+        - carefulness (trust in build system)
+      iso:
+        - Operational constraint (trust deploys are good & rollback)
+
+    item:
+      action: Add staggering CI pipeline (use build internally before production)
+      target: Deployment system (CI)
+      goal: Use builds internally before moving to production (build trust)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Stage deployment process (stagger)
+      level: component (but whole system is staggered)
+
+    memos:
+      # This is common practice and has long been on the list of things to do but not yet prioritized. Now it has happened.
+      - Prioritization: Do something that is known to be good practice but on the backlog
+
+      # safeguards in several places to mitigate the chances that any of the steps above could cause a similar outage.
+      - Defense-In-Depth: (AI-1, AI-3, AI-5) Similar outage safeguards in several places (staging config)
+
+      - Best-Practice: Idea of known best practice which they are finally being done. Best practice guides their "what should we do about this"

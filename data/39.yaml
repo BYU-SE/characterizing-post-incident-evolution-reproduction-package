@@ -1,0 +1,150 @@
+#
+# 39.yaml | Google
+# https://static.googleusercontent.com/media/www.google.com/en//appsstatus/ir/ti76kvgai1yqajx.pdf
+#
+# Google Chat experienced degraded service (increased in error, slow loading of rooms, no typing indicator) due to a preprocessor of chat messages being configured with the wrong access credentials. As a result, a postprocessor which depended upon the results of that preprocessor, then spawned threads and caused a deadlock condition, in attempting to fetch the results itself.
+# 
+#
+# Researcher Notes:
+#
+
+IR-39:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Software-Life-Cycle / Prevent and detect (in depth): 
+      - AI-3 testing ("before reaching production")
+      - AI-1 detection
+      - AI-2 production (resources)
+
+  memos:
+    # To prevent the recurrence of this issue and reduce the impact of similar events, the following actions are being taken:
+    - Similar: Condition, Impact, events
+    - Mindset: Failures will always occur, and that their impact should be managed as best as possible
+
+    # END OF PUBLIC INCIDENT REPORT
+    - public incident report differs from internal
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [The failure involved a new thread attempting to retrieve a value in a way that a deadlock condition was reached. We are] Adjusting the automated alerting system to improve the detection of lock contention issues
+
+    motivation:
+      experience: Deadlock on failure scenario (cache miss+load failure)
+      lifecycle:
+        - Response / Detection
+      tags:
+        - limit hit (lock on thread)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: UNCLEAR ("Adjust the system")
+      target: Alarming and monitoring system
+      goal: Allow lock contention issues to be more easily detected
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - detect # / alerting (detection of lock contention issues)
+
+    other:
+      modification: Alarm on thread lock contention issue (detect)
+      level: component
+      timing: started ("are being taken")
+      qa-category: keep within range (lock contention) # - Visibility (of "lock contention")?
+
+  AI-2:
+    # [The failure involved a new thread attempting to retrieve a value in a way that a deadlock condition was reached. We are] Increasing the number of threads available to Google Chat backend services in order to reduce the potential impact of lock contention events
+
+    motivation:
+      experience: Deadlock on failure scenario (cache miss+load failure) resulted in thread lock contention affecting other backend tasks
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - limit hit (lock on thread, leading to lock contention events)
+        - propagation (to application from dependency via shared thread pool used by application)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Increase the number of threads that services can use
+      target: Chat postprocessor service configuration
+      goal: Reduce the potential impact of lock contention events
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Scale threads for component
+      level: component
+      timing: started ("are being taken")
+      qa-category: extend range / available threads (therefore less contention)
+
+    memos:
+      - As an explanation of the Extended range coding above ... this AI relates to the impact that a lock contention event would have on services, and does not prevent lock contention events.
+
+  AI-3:
+    # During the investigation of the issue - the Engineering team identified an increase in lock contention within the backend binaries since the deployment of the latest release and subsequently [...] Defining new testing which triggers this particular code path and identify this issue before reaching production.
+
+    motivation:
+      experience: Newly deployed code hit a deadlock condition (when a cache value missing)
+      lifecycle:
+        - Pre-incident / Introducing latent issue
+    
+    item:
+      action: Add new tests that triggers the code path in incident
+      target: Test suite
+      goal: Reproduce specific preprocessor aborting issue (to ensure coverage)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization ("deadlock")
+        - Reliability / Faultlessness (catch before production)
+      temporal: new
+      google-ai:
+        - prevent
+      
+    other:
+      modification: Add tests that triggers code path
+      timing: started ("are being taken")
+      qa-category: keep within range / test code path?
+    
+    themes:
+      - increase code coverage (path)
+      - latent defect or issue
+
+    memos:
+      - On the topic of a latent issue, a failure was occurring but didn't cause an incident until a code change (more or less) added a hard dependency and same ongoing failure than became a problem. So it was a tolerated or ignored failure, until it wasn't.
+

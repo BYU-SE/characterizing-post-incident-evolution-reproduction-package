@@ -1,0 +1,214 @@
+#
+# 24.yaml | AWS
+# https://aws.amazon.com/message/5467D2/
+#
+# A network disruption led to DynamoDB storage servers asking metadata servers for updated "membership" information. Because membership information was larger now than previously for many tables (due to GSIs) many of these requests timed out. The metadata service was overwhelmed and storage servers marked themselves as unavailable.
+#
+#
+# Researcher Notes:
+#
+
+IR-24:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Resources / Making-Headroom (supply and demand full-press):
+      - AI-1 scale up number of servers
+      - AI-2 monitor utilization (more dimensions)
+      - AI-3 reduce demand (request frequency)
+      - AI-4 partition to split up demand
+
+  memos:
+    # After several failed attempts at adding capacity, at 5:06am PDT, we decided to pause requests to the metadata service. This action decreased retry activity, which relieved much of the load on the metadata service.
+    - This was an option for responders, because that capability had been added to the system
+
+    # A storage server will also get its membership assignment after a network disruption or on startup. 
+    - For cluster like systems anything that has happen after a disruption is a potential storm
+
+    # Initially, we were unable to add capacity to the metadata service because it was under such high load, preventing us from successfully making the requisite administrative requests.
+    - Too much load to scale it up (ha!)
+    - Shared Events
+
+    # There are several other AWS services that use DynamoDB that experienced problems during the event. Rather than list them all, which had similar explanations for their status, we’ll list a few that customers most asked us about or where the actions are more independent from DynamoDB’s Correction of Errors (“COE”).
+    - Discussion about Correction of errors, this is in a subsection called "Impact on Other Services"
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # When the network disruption occurred on Sunday morning, and a number of storage servers simultaneously requested their membership data, the metadata service was processing some membership lists that were now large enough that their processing time was near the time limit for retrieval [leading to timeouts and retries] First, we have already significantly increased the capacity of the metadata service.
+
+    motivation:
+      experience: A network disruption caused some (recently-become more time-expensive) requests to timeout and be retried, causing a synched storm of requests which overloaded the database and took healthy storage servers to retract their availability
+      lifecycle:
+        - Failure / Inception
+        #- Pre-incident # [TODO] Deployment of Global indexes with perf changing characteristics?
+      tags:
+        - infrastructure disruption (network disruption)
+        - limit hit (processing time and timeouts and retries)
+        - high load (resync storm after network disruption)
+        - slow operation (getting slower)
+      iso:
+        - Capacity
+
+    item:
+      action: Significantly increase capacity 
+      target: Distributed datastore (partition) metadata subsystem
+      goal: Handle load from similar network disruptions (GUESS)
+
+      action-type:
+        - evo / add
+      target-type: 
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent #/ add capacity
+
+    other:
+      modification: Scale number of servers (metadata service)
+      level: system
+
+
+  AI-2:
+    # Second, we are instrumenting stricter monitoring on performance dimensions, such as the membership size, to allow us to thoroughly understand their state and proactively plan for the right capacity.
+
+    motivation:
+      experience: They did not have detailed enough monitoring to check for an important dimension (partitions per table) which would have shown they were under capacity and near a limit
+      lifecycle:
+        - Pre-incident
+      tags:
+        - infrastructure disruption (network disruption)
+        - limit hit (processing time and timeouts and retries, were approaching some time before)
+        - high load (resync storm after network disruption)
+        - slow operation (getting slower)
+      iso:
+        - Capacity
+        - Analysability
+
+    item:
+      action: Instrument system with monitoring on performance dimensions (response sizes)
+      target: Distributed datastore (partition) metadata subsystem
+      goal: Support proactive capacity planning (understanding of state)
+
+      action-type:
+        - evo / add
+      target-type: 
+        - Data stores / Metrics
+      target-sys: element
+      sts:
+        - Process / Maintenance procedures
+      intended-effect:
+        - Maintainability / Analysability
+        - Safety / Hazard warning
+        - Performance Efficiency / Time behavior (membership size)
+      temporal: new
+      google-ai:
+        - prevent # "several actions...to avoid a recurrence"
+
+    other:
+      modification: Monitor performance dimensions (understanding & planning)
+      level: system
+
+    memos:
+      # Normally, this type of networking disruption is handled seamlessly and without change to the performance of DynamoDB, as affected storage servers query the metadata service for their membership, process any updates, and reconfirm their availability to accept requests [but membership sizes had increased and] We did not have detailed enough monitoring for this dimension (membership size), and didn’t have enough capacity allocated to the metadata service to handle these much heavier requests.
+
+      - Incident demonstrated a (untracked) performance dimension (learning!)
+      - Gradual change (membership sizes) made it no longer resilient to disruption (trending towards)
+
+  AI-3:
+    # Third, we are reducing the rate at which storage nodes request membership data and lengthening the time allowed to process queries.
+
+    motivation:
+      experience: A recent change in request membership data changed performance characteristics and pushed the system closer to limits
+      lifecycle:
+        - Pre-incident # [TODO] Deployment of Global indexes with perf changing characteristics?
+      tags:
+        - timeouts
+        - deployment (feature with performance characteristics change)
+        - limit hit (processing time and timeouts and retries, were approaching some time before)
+        - high load (resync storm after network disruption)
+        - slow operation (getting slower)
+      iso:
+        - Time behavior
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Reduce retry frequency & increase request timeout value
+      target: Distributed datastore (nodes using metadata service)
+      goal: Reduce resources required for synchronization
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Reduce request frequency (updates) & increase timeout
+      level: component
+
+    memos:
+      - Uncertainty: (AI-3, AI-4) Headroom goal
+
+  AI-4:
+    # Finally and longer term, we are segmenting the DynamoDB service so that it will have many instances of the metadata service each serving only portions of the storage server fleet. This will further contain the impact of software, performance/capacity, or infrastructure failures.
+
+    motivation:
+      experience: A network disruption and subsequent retry storm overloaded much of the metadata service and took many, initially unrelated and unaffected, storage volumes out of service
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - infrastructure disruption (network disruption)
+        - limit hit (processing time and timeouts and retries)
+        - high load (resync storm after network disruption)
+        - slow operation (getting slower)
+      iso:
+        - Capacity
+        - Fault tolerance
+        - Co-existence
+
+    item:
+      action: Partition service, splitting load
+      target: Distributed datastore architecture
+      goal: Contain impact of various failure types
+
+      action-type:
+        - evo / alter
+      target-type: 
+        - Data stores / Data and data architecture
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (split for redundancy & isolation to limit impact)
+      temporal: new
+      google-ai:
+        - mitigate future #/ isolate failure (localize)
+
+    other:
+      modification: Partition component to many instances & use cases
+      level: system
+      scope: "longer term"
+
+    memos:
+      - Uncertainty: (AI-3, AI-4) Headroom goal

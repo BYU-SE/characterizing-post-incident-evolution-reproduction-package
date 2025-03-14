@@ -1,0 +1,308 @@
+#
+# 10.yaml | Honeycomb
+# https://www.honeycomb.io/blog/postmortem-rds-clogs-cache-refresh-crash-loops/
+#
+# Partial API outage and repeated incident led to emergency maintenance for 2 minutes. Datastore was slow and the caching layer would send a thundering herd of cache refreshes. The datastore reached tipping over points and led to OOMs.
+# [For all of the below actions, the key explanatory quote is:] The real risk factor was that our production RDS instance's CPU utilization had been idling around a baseline of 30-40% for some time [and also that when RDS slowed down the cache refresh attempts] was enough to tip us over [...]
+#
+# Researcher Notes:
+#
+
+IR-10:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Resources / Making-Headroom (DB):
+      - AI-2 increase DB capacity
+      - AI-1, AI-3, AI-4 reduce load on DB over several AIs
+
+    # Our quick temporary fix to recover from the crash loop was to temporarily reduce the size of our autoscaling group, relieving the pressure of request retries just enough for RDS and our API servers to self recover. Then we looked for the actual cause.
+    # - First-Fast-Then-Better (Mitigation then better):
+    #   - Fast: Reduce size of autoscaling group to relieve pressure of retries to allow RDS and API servers to recover (mitigation)
+    #   - Right: look for RCA and address it (all AIs)
+
+  memos:
+    - AI-Section-Title: Section called "Longer term followups" and a section "Other action items"
+
+    # Although the cache fix addresses an immediate culprit, we knew we would **continue to be at risk** of a single DB-intensive incident tipping over our RDS instance **in the future** unless we reduced our baseline utilization.
+    - Uncertainty: Tipping-Point, Goal (for multiple PAs) is to move a way from the tipping point (pattern!!), Risk, Address immediate culprit, continuing to be at risk for tipping over in the future
+    - Similar: Symptom, Same event happening (tipping over RDS) in the future
+    - Single-Point-Of-Failure: DB-intensive incident
+
+    # We always learn new lessons during an outage, and add new event context so that we can better understand the behavior of our systems in the future.
+    - Lessons-Learned: Outages lead to lessons learned, which help understand behavior of systems in the future
+    - Behavior: One value of an incident is better understanding of system behavior
+    - Improving-Understanding: One value of an incident is better understanding of system behavior
+
+    - The evolution of AI-4 was superseded by the evolution of AI-5. They planned originally to do AI-4 with some goal in mind and it seems like they wound up doing AI-5 after AI-4. AI-5 may never have been on the original internal incident report.
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Previously, when a cache entry expired, it was assumed to be gone from the cache, and any subsequent requests for it would return “not found”. The caller would then typically do a DB query and put the result back into the cache with the correct TTL. The fix is to change the cache behavior such that only a single goroutine at a time is refreshing the cache. This fixes the thundering herd of cache refreshes that happens after RDS falls behind.
+
+    motivation:
+      experience: When RDS falls behind (already high base utilization and there can be a usage spike), there is a thundering herd of cache refreshes
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - propagation (effects via cache refresh feedback loop) # [TODO] Might be better categorized as something else. Is there propagation occurring?
+        - high load (thundering herd, refresh storm, synchronized with other uses)
+        - limit close (near tipping point)
+        - cache (refresh storm)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Only allow one cache refresh at a time (per key?)
+      target: Cache on service for DB, refresh strategy
+      goal: Prevent thundering herd
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization (compute time and resources and requests)
+        - Reliability / Faultlessness (well-behaved & prevents thundering herd)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix concurrency model (during cache refresh)
+      level: component interactions
+
+    memos:
+      - Uncertainty: Addresses an immediate culprit that caused tipping over, but they also scheduled items to reduce baseline utilization to prevent the same thing
+
+  AI-2:
+    # For one thing, we had simply reached a usage volume where we benefited more from throwing money than engineer-hours at this particular database problem. We scheduled a brief emergency maintenance window about 12 hours after the 10/11 outage to upgrade our production RDS instance from m4.xlarge to m5.2xlarge, which briefly interrupted all services for a few minutes but reduced our idling utilization percentage from 30-40% to 6%. It also had the bonus effect of reducing and dramatically stabilizing query times.
+
+    motivation:
+      experience: When RDS slowed down, cache entries expired and more routines than usual attempted to refresh the cache, creating a feedback loop
+        - They tipped over when baseline CPU utilization (30-40%) rose with a usage spike (50-60%) and the cache refreshes occurred at the same time
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - propagation (effects via cache refresh feedback loop) # [TODO] Might be better categorized as something else. Is there propagation occurring?
+        - high load (thundering herd, refresh storm, synchronized with other uses)
+        - limit close (near tipping point)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Scale up hardware (database instance type)
+      target: Database (RDS)
+      goal: Reduce CPU utilization (avoid tip over)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Capacity (CPU)
+        - Performance Efficiency / Time behavior (stable)
+      temporal: new
+      google-ai:
+        - prevent #/ scale up (hardware)
+
+    other:
+      modification: Scale up hardware type # larger instance
+      activity: upgrade
+      level: component # storage subsystem
+
+    memos:
+      - Had bonus effect of reducing and stabilizing query times
+      - Interesting that getting down to 6% utilization is considered GOOD
+      - Uncertainty: (AI-2, AI-3, AI-4, AI-5) Headroom goal, (AI-2, AI-3, AI-4, AI-5) Tipping point event
+
+  AI-3:
+    # We used our internal Honeycomb instance to inspect the latency of our highest volume RDS queries, and identified cases where we could stand to reduce their frequency.
+
+    motivation:
+      experience: They tipped over when baseline CPU utilization (30-40%) rose with a usage spike (50-60%) and the cache refreshes occurred at the same time
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (thundering herd, refresh storm, synchronized with other uses)
+        - limit close (near tipping point)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Inspect latency of most common queries (identify)
+      target: Database queries
+      goal: Reduce load on database
+
+      action-type:
+        - formative / discover options
+        - evo / alter
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization (query frequency)
+      temporal: new
+      google-ai:
+        - prevent #/ optimize (db query frequency)
+
+    other:
+      modification: Reduce querying frequency # reduce query frequency
+      activity: inspect latency
+      level: component interactions
+
+    themes:
+      - headroom
+
+    memos:
+      - So they didn't optimize the queries, just call them less frequently?
+      - Defense-In-Depth: (AI-3, AI-4, AI-5) Reducing load on db from queries
+      - Uncertainty: (AI-2, AI-3, AI-4, AI-5) Headroom goal, (AI-2, AI-3, AI-4, AI-5) Tipping point event
+
+  AI-4:
+    # We considered slowing down or staggering the disk-usage-gathering cronjob that had been periodically causing our RDS utilization to spike 20%, so that it wouldn't hammer the database so much as soon as it started running.
+
+    motivation:
+      experience: RDS utilization spiked with a cron job, on top of the baseline CPU utilization. And the cache refreshes that occurred at the same time caused a tipping over
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (thundering herd, refresh storm, synchronized with other uses)
+        - limit close (near tipping point)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Consider changing frequency of expensive cron jobs
+      target: Database cronjob schedules
+      goal: Reduce load on database
+
+      action-type:
+        - formative / consider options
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (less frequently)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Reduce query frequency (concurrent) # "slowing down or staggering"
+      activity: investigate options
+      level: component interactions
+    
+    themes:
+      - tradeoffs (batch vs. online)
+      - headroom
+
+    memos:
+      - Defense-In-Depth: (AI-3, AI-4, AI-5) Reducing load on db from cron jobs
+      - Improving-Understanding: Investigation required
+      - Uncertainty: (AI-2, AI-3, AI-4, AI-5) Headroom goal, (AI-2, AI-3, AI-4, AI-5) Tipping point event
+      - Commitment: Wishy-washy language with "consider"
+
+  AI-5:
+    # We dug into that periodic cronjob more and noticed we were unnecessarily running it on all datasets, so we stopped running it on relatively stale datasets, yielding a ~25% reduction in that cronjob's DB writes.
+
+    motivation:
+      experience: RDS utilization spiked with a cron job (which was being run on a larger dataset that necessary), on top of the baseline CPU utilization. And the cache refreshes that occurred at the same time caused a tipping over
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (thundering herd, refresh storm, synchronized with other uses)
+        - limit close (near tipping point)
+        - slow operation (running on more data that needed)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Stop unnecessary queries on stale datasets (batch job)
+      target: Database cronjob (periodic)
+      goal: Reduce load on database
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Reduce (stop some) periodic querying # "reduction in [...] writes"
+      level: component interactions
+    
+    themes:
+      - headroom
+
+    memos:
+      - Defense-In-Depth: (AI-3, AI-4, AI-5) Reducing load on db from unnecessary sources (data is stable)
+      - Uncertainty: (AI-2, AI-3, AI-4, AI-5) Headroom goal, (AI-2, AI-3, AI-4, AI-5) Tipping point event
+
+  AI-6:
+    # Observability is as much as factor of culture as code, and we also documented miscellaneous stumbling points and on-call processes that had caused confusion or burned time during the outage.
+
+    motivation:
+      experience: Some factors caused stumbling when trying to recover (VAGUE)
+      lifecycle:
+        - Response / Triage
+        - Response / Diagnosis
+        - Response / Mitigation
+      tags:
+        - delayed RCA (stumbling points and confusion burn time)
+        - human factors (confusion about stumbling points and on-call processes)
+      iso:
+        - Recoverability
+
+    item:
+      action: Document problems and points of confusion during response
+      target: Incident response documentation and procedures
+      goal: Reduce time to resolve incidents (avoid confusion)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Playbook
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / Operability (response docs)
+      temporal: new
+      google-ai:
+        - mitigate future #/ decrease duration
+
+    other:
+      modification: Document learnings (stumbling points) for oncall processes 
+      modification2: I think tune behavior and performance.
+
+    memos:
+      - Similar to updating mental models

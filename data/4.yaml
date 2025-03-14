@@ -1,0 +1,162 @@
+#
+# 4.yaml | Asana
+# https://blog.asana.com/2016/09/yesterdays-outage/
+# https://asana.com/inside-asana/yesterdays-outage
+#
+# A later (in the day) than usual deployment of code that "had a bug, which resulted in the logging being triggered dramatically more often than we had anticipated" increasing CPU utilization which (when combined with morning peak traffic) increased latency and longer DB connections
+#
+#
+# Researcher Notes:
+#
+
+IR-4:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # We identified systems and procedures that we can improve in three main areas: detecting problems before they become user facing, reducing the amount of time required for on-call engineers to triage incidents, and reducing the amount of time to fix problems once they have been identified.
+    # - Defense-In-Depth: Possible categorization of actions; helps define "depth"
+
+    - Across-Incident-Life-Cycle / Quicker response:
+      # We identified systems and procedures that we can improve in three main areas: detecting problems before they become user facing, reducing the amount of time required for on-call engineers to triage incidents, and reducing the amount of time to fix problems once they have been identified.
+      - AI-1 detect more quickly
+      - AI-2 triage more quickly
+      - AI-3 fix issue more quickly
+
+  memos:
+    # We’d like to tell you what we understand about the outage and the steps we are taking to avoid a similar incident in the future.
+    - Similar incident: AIs as steps being taken "to avoid a similar incident in the future". But in this case no explicit AIs aim to address the trigger or contributing factors, but if they are successful with their AIs they will avoid incidents (even if the same triggering occurs) because they may catch it and fix them "before they become user facing". The trigger ("proximate cause") in this case was a deployment that increased resource utilization and there was *delay* between the deployment and onset of the incident.
+
+    # After the incident was resolved, we ran a 5 Whys. We believe that our failure during this incident was our response. As such, we are implementing additional tools and safeguards to ensure we are better equipped to deal with this type of issue in the future. 
+    - Perceptions of the failure: Different perspectives on the nature of the system failure (and what was learned from it) affect the nature of the AIs proposed. In this case, they perceive their response as the failure and so naturally their AIs aim to improve aspects of their response. I imagine the assumption here is that there will be future deployments that cause similar behavior (and maybe unavoidably so) but if they can respond quickly enough it will prevent a similar incident.
+
+    - AI-Section-Title: No dedicated section, a paragraph 2 from the end described response.
+
+    # With just Asana employees on this version, those machines were not overloaded.
+    - Environments: Differences in responder envs (analogous to differences in test envs)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # We had sufficient headroom that the CPU increase didn’t cause any problems, allowing the issue to go unnoticed on Wednesday night [and when incident began] Asana was still up [...] We identified systems and procedures that we can improve in three main areas: [1] detecting problems before they become user facing.
+
+    motivation:
+      experience: Deployment of defect, which went unnoticed for a long time (headroom obscured CPU increase)
+      lifecycle:
+        - Response / Detection
+      tags:
+        - deployment (of defect)
+        - delayed start of issue (lot of headroom)
+        - delayed detection (lot of headroom)
+        - missing monitoring
+        - defect
+      iso:
+        - Analysability
+
+    item:
+      action: UNCLEAR
+      target: Metrics reporting systems (VAGUE)
+      goal: Detect "problems before they become user facing"
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+        - Incident response tools and process / Detection
+      sts:
+        - Tech / UNCLEAR
+        - Process / UNCLEAR
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect
+
+    other:
+      modification: Alarm on CPU utilization increase
+      timing: future
+
+    themes:
+      - headroom (reduced)
+      - delayed reaction (window)
+
+
+  AI-2:
+    # One of the engineers noticed the increased logging on the web servers, but discarded this line of investigation, since it didn’t match the hypotheses that were being explored [...] We identified systems and procedures that we can improve in three main areas: [2] reducing the amount of time required for on-call engineers to triage incidents [continued below ...]
+
+    motivation:
+      experience: Mistakes led to delays in triage
+      lifecycle:
+        - Response / Triage
+        - Response / Diagnosis
+      tags:
+        - delayed triage (due to mistakes)
+        - human factors (mistake, discarded line of investigation)
+      iso:
+        - Recoverability
+
+    item:
+      action: UNCLEAR
+      target: Incident response systems and procedures for triage
+      goal: Reduce time to triage (for on-call engineers)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Triage
+      sts:
+        - Tech / UNCLEAR
+        - Process / UNCLEAR
+      intended-effect:
+        - Maintainability / Analysability (triaging time)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: VAGUE
+      timing: future
+
+    themes:
+      - bias (mislead RCA)
+
+  AI-3:
+    # Between 08:08am and 08:29am we tried to identify a safe version of the code that we could revert to. We had a recent set of reverts the day before, so had we just picked the previous revision, we would have ended up with bad code [...] We identified systems and procedures that we can improve in three main areas: [3] reducing the amount of time to fix problems once they have been identified.
+
+    motivation:
+      experience: Multiple previous reverts complicated recovery
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (multiple reverts complicate selecting safe version to revert to)
+        - complicating factors (identifying a safe version to revert to)
+      iso:
+        - Recoverability
+
+    item:
+      action: UNCLEAR
+      target: Incident response procedures
+      goal: Reduce time to fix issue after identification
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Tech / UNCLEAR
+        - Process / UNCLEAR
+      temporal: new
+      intended-effect:
+        - Reliability / Recoverability
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Changes to reduce time to fix identified problems
+      timing: future

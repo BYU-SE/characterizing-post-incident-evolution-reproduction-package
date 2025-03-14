@@ -1,0 +1,164 @@
+#
+# 58.yaml | Spotify
+# https://engineering.atspotify.com/2023/02/incident-report-spotify-outage-on-january-14-2023/
+#
+# An invalid DNS configuration was applied as an internal component (their GitHub Enterprise systems) was being brought back up after maintenance, causing internal services and production traffic to begin failing.
+# 
+#
+# Researcher Notes:
+#
+
+IR-58:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better:
+      - AI-1 fix defect (done)
+      - AI-2 add resilience to DNS infrastructure (done)
+      - AI-3 rearchitect DNS infrastructure (planned)
+    
+    - Fix-And-Tolerate / Specific then resilience improvements (over time):
+      - AI-1 fix defect (done)
+      - AI-2 add resilience to DNS infrastructure (done)
+      - AI-3 rearchitect DNS infrastructure (planned)
+
+    - Concentric-Circles / Specific then class of problems (two step): # [TODO] Which of these is right?
+      - AI-1 fix defect (done)
+      - AI-2 add resilience to DNS infrastructure (done)
+      - AI-3 rearchitect DNS infrastructure (planned)
+
+  memos:
+    # Due to the nature of the incident, triage took longer than one would expect; our internal tooling was inaccessible.
+    - Support tools and core systems have the same dependencies (DNS) and when that fails they can both go down
+
+    - Evolving towards simplicity:
+      - AI-3 increased priority of existing project to "remove complexity"
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # However, a change was introduced in the DNS component, which set off a new failure mode that resulted in invalid configurations being applied to the DNS resolvers. GHE going down didn’t cause the outage — it was only as GHE was brought back up from maintenance that the invalid configuration was then applied across the resolver fleet over the course of an hour. When a resolver got an invalid configuration, it entered a crashloop and was unable to serve responses to internal DNS queries. [.. So] We have fixed the bug that caused this outage.
+
+    motivation:
+      experience: Change introduced to DNS component caused invalid configurations and crashing DNS resolvers
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - manual action (maintenance to GHE, and triggered issue when came back online)
+        - deployment (of change to DNS component, resulted in invalid configurations being applied to DNS resolvers)
+        - defect (crash loop after receiving invalid configuration)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix bug
+      target: Network DNS component
+      goal: Remove bug that could cause this scenario to happen again
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix defect (actions during maintenance)
+      level: component
+
+    memos:
+      - Completed: annotated as past tense "fixed"
+
+
+  AI-2:
+    # [A novel DNS failure was central to the incident] We have made changes in multiple services and infrastructure that will improve resiliency against future DNS outages.
+
+    motivation:
+      experience: The impact was small at first and increased over the course of an hour until most functionality was not working
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure to dependencies via hard dependencies on DNS)
+      iso:
+        - Modifiability
+
+    item:
+      action: Make changes (VAGUE)
+      target: Services & infrastructure (DNS related)
+      goal: Improve resiliency against future DNS outages
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Architecture and interactions / Dependency structure
+        # - General services
+      sts:
+        - Tech / Core
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: VAGUE
+      level: component
+
+    memos:
+      - Completed: annotated as past tense "fixed"
+
+
+  AI-3:
+    # [A novel DNS failure was central to the incident]  We plan to decommission the DNS component that failed, as part of an ongoing project aimed at removing complexity from our DNS infrastructure. We have increased the priority for this project.
+
+    motivation:
+      experience: DNS resolvers are a critical part of their internal DNS infrastructure pulled configuration from multiple sources, including GHE and failure occurred despite multiple safeguards in place to handle outages
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - complexity
+        - risk of outage (many other ways for complex system to fail, and they already have many safeguards)
+      iso:
+        - Modifiability
+        - Fault tolerance
+
+    item:
+      action: Decommission the DNS component that failed
+      target: Network DNS component
+      goal: Reduce complexity in their DNS infrastructure
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Faultlessness
+      temporal: previously started
+      google-ai:
+        - prevent
+
+    other:
+      modification: Eliminate DNS component (reduce complexity)
+      activity: deploy, prioritize
+      level: component
+
+    memos:
+      - Prioritization: Reprioritize, increasing
+

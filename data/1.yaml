@@ -1,0 +1,198 @@
+#
+# 1.yaml | Coinbase
+# https://blog.coinbase.com/incident-post-mortem-june-1-2020-1cff2e51fa64
+#
+# Description: IN connection with a price spike of BTC, the service experienced a 5x traffic spike over 4 minutes and autoscaling was unable to keep pace, leading to an outage on their website and mobile apps.
+#
+#
+
+IR-1:
+  extractedBy: matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better (Temporary then permanent, manual then automate):
+      # We’re working on reducing the impact of price-related traffic spikes though pre-scaling and caching. Longer term we’re planning to improve our deployment process to mitigate some of the autoscaling issues we experienced.
+      - AI-3 temporarily use a manual process to respond to spikes
+      - AI-4 "longer term" improve the autoscaling process
+
+  memos:
+    # In response to these events, we’re working on a number of improvements.
+    - Incident seen as series of events, AIs are simply considered improvements.
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The health check is also served by these saturated processes, which caused some instances to be marked as unhealthy and taken out of the load balancer, further exacerbating this issue. We have since fixed the health endpoint to ensure that saturated instances don’t get taken out of rotation. 
+
+    motivation:
+      experience: Health checks were served by saturated processes and failed, removing instances
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - health check failing
+        - automation action
+        - inaccurate health assessment (taking incorrect action)
+      iso:
+        - Availability
+
+    item:
+      action: Fix health checking logic (VAGUE)
+      target: Health checking system for load balancer 
+      goal: Correctly assess the health of instances to avoid taking instances out when saturated
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance 
+        - Reliability / Faultlessness
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Avoid exacerbating
+
+    other:
+      modification: Adjust health checking logic (keep healthy hosts)
+      complete: true # "We have since fixed"
+      timing: done
+      qa-category: contain failure
+
+    themes:
+      - automation / fix failed mitigation (health checking based load balancing)
+
+    memos:
+      - Automation and health checking: Easy for health checking to make problems worse ("further exacerbating this issue") because their actions are based on a misdiagnosis of which system component is actually failing, and because health check responses depend on the same resources as other processes. AI-1 is to ensure that instances that are overloaded are not removed, because they will then drop to 0% availability. 
+
+  # In connection with the rising price, we experienced a 5x traffic spike over 4 minutes. Our autoscaling was unable to keep pace with this dramatic increase in traffic. We’re working on reducing the impact of price-related traffic spikes though pre-scaling and caching
+
+  AI-2:
+    motivation:
+      experience: Autoscaling couldn't scale up fast enough with traffic spike
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike)
+        - automated scaling actions (scale up too slow)
+      iso:
+        - Scalability
+
+    item:
+      action: Add caching
+      target: Cache system on services (new, protect against spikes)
+      goal: Reduce the impact of price-related traffic spikes
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+        - Flexibility / Scalability
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Extend range ("keep pace")
+
+    other:
+      modification: Add proactive safety mechanism (caching)
+      timing: started / temporary
+      qa-category: extend range / caching
+  
+  AI-3:
+    motivation:
+      experience: Autoscaling couldn't scale up fast enough with traffic spike
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike)
+        - automated scaling actions (scale up too slow)
+      iso:
+        - Scalability
+
+    item:
+      action: Pre-scale before predictable surges
+      target: Fleet infrastructure (scaling servers)
+      goal: Scale more quickly in the face of traffic spikes
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Extend range ("keep pace")
+
+    other:
+      modification: Manually pre-scale service (autoscaling too slow for spike)
+      timing: started / temporary
+      qa-category: extend range / pre-scale for spikes
+      activity: pre-scaling
+ 
+    themes:
+      - response tooling
+      - automation / faster autoscaling
+
+  AI-4:
+    # In an effort to mitigate the saturation, we redeployed the API at 16:20 PDT to increase the machines serving the traffic. Once this deploy completed, the previous deploy’s instances were taken out of rotation, leading to another 2 minute outage due to instances saturating and being marked unhealthy. This was handled automatically by our autoscaling. Longer term we’re planning to improve our deployment process to mitigate some of the autoscaling issues we experienced.
+
+    motivation:
+      experience: Autoscaling takes old instances out of rotation at a rate which can saturate remaining processes (leading to poor health check consequences)
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - automated scaling actions (remove instances too quickly)
+      iso:
+        - Scalability
+        - Capacity
+
+    item:
+      action: Improve (VAGUE)
+      target: Deployment process
+      goal: Mitigate the autoscaling issues (VAGUE)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline / Health checks
+      sts:
+        - Tech / Infra
+      temporal: new
+      google-ai:
+        - mitigate future
+      intended-effect:
+        - Reliability / Faultlessness 
+        - Reliability / Availability
+        - Flexibility / Scalability
+      coding:
+        - Streamline/refine (deploying news hosts)
+
+    other:
+      modification: Improve deployment process (scaling related)
+      scope: "longer term"
+      timing: longer term
+      qa-category: extend range / autoscale at higher rate
+ 
+    themes:
+      - automation / fix or improve autoscaling (marked as unhealthy)
+      - ungraceful recovery

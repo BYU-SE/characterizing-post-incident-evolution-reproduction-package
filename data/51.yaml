@@ -1,0 +1,90 @@
+#
+# 51.yaml | Cloudflare
+# https://blog.cloudflare.com/todays-outage-post-mortem-82515/
+
+#
+# A configuration file triggered a bug, crashing all routers across the network. Many of the routers crashed in a way that they did not reboot, and those that did were then overloaded with the rest of the traffic that had ben sent their way, causing CloudFlare to effectively drop offline.
+# 
+#
+# Researcher Notes:
+#
+
+IR-51:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [A rule which should have been benign triggered an outage. The rule was applied globally and so all data centers were affected.] We will be doing more extensive testing of Flowspec provisioned filters and evaluating whether there are ways we can isolate the application of the rules to only those data centers that need to be updated, rather than applying the rules network wide.
+
+    motivation:
+      experience: A network configuration changes which was applied globally consumed all ram and took their services offline
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (global of configuration change which caused outage)
+        - limit hit (memory consumed by configuration change)
+      iso:
+        - Modifiability
+
+    item:
+      action: Do extensive testing of network filters and evaluate ways to do partial updates
+      target: Network router protocol filters and systems
+      goal: Support partial updates to reduce risk of unnecessary global outage
+
+      action-type:
+        - formative / discover options # also audit?
+      target-type:
+        - Infrastructure / Network equipment
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Maintainability / Modifiability (partial changes)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      activity: testing
+
+
+  AI-2:
+    #  Finally, we plan to proactively issue service credits to accounts covered by SLAs. Any amount of downtime is completely unacceptable to us and the whole CloudFlare team is sorry we let our customers down this morning.
+
+    motivation:
+      experience: They had downtime during the incident and therefore caused damages to customers
+      lifecycle:
+        - Response / Mitigation # an action to repair the lasting effects (on reputation, money, etc)
+      tags:
+        - repair
+      iso:
+        - Recoverability
+
+    item:
+      action: Issue service credits
+      target: Customer accounts (credit for downtime)
+      goal: Return money since SLAs were breached
+
+      action-type:
+        - formative / other # non-evolutionary, but could lead to evolution from pain of having to refund customers.
+      target-type:
+        - Other
+      sts:
+        - People / Customers
+      temporal: new
+      google-ai:
+        - repair
+
+    other:
+      activity: issue refunds
+
+    memos:
+      - This is very distinct from the rest, but that is largely because it is a repair action which is planned.

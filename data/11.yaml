@@ -1,0 +1,385 @@
+#
+# 11.yaml | Cloudflare
+# https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/
+#
+# Description: "Unfortunately, last Tuesday’s update contained a regular expression that backtracked enormously and exhausted CPU used for HTTP/HTTPS serving. This brought down Cloudflare’s core proxying, CDN and WAF functionality. The following graph shows CPUs dedicated to serving HTTP/HTTPS traffic spiking to nearly 100% usage across the servers in our network.""
+#
+# Researcher Notes:
+#
+# 
+
+IR-11:
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better:
+      - AI-1 immediately reintroduce protection (done)
+      - AI-5 replace regex engine (1 month)
+      - AI-8 replace entire firewall component ("longer term ...")
+
+    - Over time / Collective-Hardening (same goal, increasing effort):
+      - AI-1 immediately reintroduce protection (done)
+      - AI-5 replace regex engine (1 month)
+      - AI-8 replace entire firewall component ("longer term ...")
+  
+    - Architecture / Successively larger changes (protection):
+      - AI-1 protecting - within current architecture
+      - AI-5 protecting - replace component (regex engine)
+      - AI-8 protecting - replace subsystem (entire firewall)
+
+    - Across-Software-Life-Cycle / Testing to runtime:
+      - AI-3 inspecting code (existing code only)
+      - AI-4 expand testing
+      - AI-6 stage (non-emergency) deployments
+      - AI-1, AI-5, AI-8 protecting at runtime
+
+  memos:
+    # Firstly, we stopped all release work on the WAF completely and are doing the following:
+    - Freeze-plan-fix-unfreeze: Disabling deployments, then to re-enable later.
+
+    #  We responded quickly to correct the situation and are correcting the process deficiencies that allowed the outage to occur and going deeper to protect against any further possible problems with the way we use regular expressions by replacing the underlying technology used.
+    - Going deeper to protect more than just current
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # "What’s happened since last Tuesday"
+  #
+
+  #   # Firstly, we stopped all release work on the WAF completely 
+  #   exclude: Not an AI
+
+  AI-1:
+    # A protection that would have helped prevent excessive CPU use by a regular expression was removed by mistake during a refactoring of the WAF weeks prior—a refactoring that was part of making the WAF use less CPU [...] Re-introduce the excessive CPU usage protection that got removed.
+
+    motivation:
+      experience: Excessive CPU usage protection was mistakenly removed, which allowed an expensive regular expression to trigger an issue
+      lifecycle:
+        - Pre-incident # Failure / Triggering
+      tags:
+        - limit hit (CPU, shared resource)
+        - human factors (mistake, removed protections)
+        - deployment (of expensive regex)
+        - defect (expensive regex)
+      iso:
+        - Resource utilization (compute)
+        - Operational constraint
+
+    item:
+      action: Re-introduce excessive CPU usage protection
+      target: Network web application firewall regular expressions rules
+      goal: Protect against resource starvation (for competing activities)
+
+      action-type:
+        - evo / add #/ reintroduce
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent #/ resilience (to future defect)
+
+    other:
+      modification: Protective excessive CPU usage mechanism
+      activity: re-introduce
+      level: component
+      complete: true
+
+    memos:
+      - Similar: Symptom, Any similarly expensive regular expression, but for the future
+      - Defense-In-Depth: Two actions to address similar (AI-1, AI-3)
+
+  AI-3:
+    # Manually inspecting all 3,868 rules in the WAF Managed Rules to find and correct any other instances of possible excessive backtracking. (Inspection complete)
+
+    motivation:
+      experience: Excessive CPU usage protection was mistakenly removed, which allowed an expensive regular expression to trigger an issue and others existing regular expressions may have this same issue
+      lifecycle:
+        - Pre-incident # Failure / Triggering
+      tags:
+        - limit hit (CPU, shared resource)
+        - human factors (mistake, removed protections)
+        - risk of outage (similar expensive regex)
+        - deployment (of expensive regex)
+        - defect (expensive regex)
+      iso:
+        - Resource utilization (compute)
+        - Operational constraint
+
+    item:
+      action: Manually inspect and correct performance defects (analyze worst case perf)
+      target: Network web application firewall regular expressions rules
+      goal: Identify and fix any latent issues
+
+      action-type:
+        - formative / check
+        - evo / alter
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Resource utilization (compute)
+      temporal: new
+      google-ai:
+        - prevent #/ fix latent # latent (not future) because it's one time
+
+    other:
+      modification: Fix latent performance defect # excessive backtracking
+      activity: manually inspect, correct
+      level: component
+      complete: true  # Marked as "inspection complete"
+
+    memos:
+      - Similar: Condition, Looking for latent defects of the same type ("other instances"), but for existing
+      - Of course this is a one time activity that will not help with future defects (but large effort)
+      - Defense-In-Depth: Two actions to address similar (AI-1, AI-3)
+
+  AI-4:
+    # [The change passed continuous integration tests as required which didn't] test for runaway CPU utilization by the WAF and examining the log files from previous WAF builds shows that no increase in test suite run time was observed with the rule that would ultimately cause CPU exhaustion on our edge [...] The test suite didn’t have a way of identifying excessive CPU consumption. [So they will] Introduce performance profiling for all rules to the test suite. 
+
+    motivation:
+      experience: The test suite didn't catch the expensive regular expression
+      lifecycle:
+        - Failure / Inception # [TODO] Check which
+      tags:
+        - tests (missed in testing, performance)
+        - deployment (of expensive regex, defect)
+        - defect (expensive regex)
+      iso:
+        - Resource utilization (compute)
+        - Operational constraint
+
+
+    item:
+      action: Add performance profiling checks
+      target: Test suit / WAF CI
+      goal: Catch future potentially expensive regular expressions in test
+
+      action-type:
+        - evo / alter # improve existing test suite
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (compute)
+      temporal: new
+      google-ai:
+        - prevent #/ catch in test
+
+    other:
+      modification: Add checks for performance characteristics
+      level: component (test suite)
+      complete: false # (ETA:  July 19)
+
+
+  AI-5:
+    # The Lua WAF uses PCRE internally, and it uses backtracking for matching and has no mechanism to protect against a runaway expression [ie., no complexity guarantees ...] Switching to either the re2 or Rust regex engine which both have run-time guarantees.
+
+    motivation:
+      experience: The regular expression engine did not have protection against a runaway expression, which consumed many resources
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - protection (limits on resource usage)
+        - limit hit (CPU, shared resource)
+      iso:
+        - Resource utilization (compute)
+        - Operational constraint
+
+    item:
+      action: Replace component (regex engine) with one with safety guarantees
+      target: Network web application firewall regular expression engine
+      goal: Prevent a regex from consuming all CPU (causing starvation)
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint (limits on safety)
+      temporal: new
+      google-ai:
+        - prevent #/ at runtime
+
+    other:
+      modification: Replace system level component (regex engine)
+      level: component (system layer)
+      complete: false # (ETA:  July 31)
+
+
+  AI-6:
+    # The SOP allowed a non-emergency rule change to go globally into production without a staged rollout. [...] Changing the SOP to do staged rollouts of rules in the same manner used for other software at Cloudflare while retaining the ability to do emergency global deployment for active attacks.
+
+    motivation:
+      experience: The expensive regular expression was deployed globally without a staged rollout.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (global without staged)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Add deployment stages (skippable)
+      target: Deployment procedures
+      goal: Reduce the impact of bad deploy (catch before it is global)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - SDLC / Deployment
+      sts:
+        - Process / Deployment procedures
+      intended-effect:
+        - Safety / Operational constraint (staged deploys)
+      temporal: new
+      google-ai:
+        - mitigate future #/ limit impact
+
+    other:
+      modification: Stage deployment (skippable)
+      activity: change SOP
+      level: system
+
+    themes:
+      - automation / more cautious rollouts
+      # KV store deploys in 3s worldwide "usually, this speed is a great thing"
+      - tradeoffs (between speed and safety; they want both)
+
+
+  AI-7:
+    # [During incident] customers were unable to access the Cloudflare Dashboard or API because they pass through the Cloudflare edge [...] Putting in place an emergency ability to take the Cloudflare Dashboard and API off Cloudflare's edge.
+
+    motivation:
+      experience: Customers were unable to access the Cloudflare Dashboard or API because they pass through the Cloudflare edge, and responders could not do anything about this.
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - dependency
+        - propagation (failure from dependency via shared dependency)
+        - responder action (limits to)
+        - behavior during incident (could not change)
+      iso:
+        - Fault tolerance
+        - Operability
+    
+    item:
+      action: Make service relocatable (at data center level)
+      target: Customer dashboard & API (plus their dependency on "Cloudflare's edge")
+      goal: Tolerate failure of a cohosted service (emergency feature)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Execution structure
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / Operability (during incident)
+      temporal: new
+      google-ai:
+        - mitigate future #/ maintain support ability
+
+    other:
+      modification: Manual emergency operation (relocatable)
+      level: system
+    
+    themes:
+      - responders (emergency option)
+
+  AI-8:
+    # In the longer term we are moving away from the Lua WAF that I wrote years ago. We are porting the WAF to use the new firewall engine. This will make the WAF both faster and add yet another layer of protection.
+
+    motivation:
+      experience: Lua WAF is old and has little protection for expensive regex
+      lifecycle:
+        - Failure / Inception # [TODO] Are these right?
+      tags:
+        - protection (limits on resource use)
+        - design factor (aging infrastructure)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Replace subsystem (add runtime safety)
+      target: Network web application firewall 
+      goal: Prevent a regex from consuming all CPU (causing starvation)
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Faultlessness (well-tested & well-understood)
+        - Performance Efficiency / Time behavior (latency)
+      temporal: previously started
+      google-ai:
+        - prevent
+
+    other:
+      modification: Replace system level component (firewall engine) # "another layer of protection"
+      activity: port
+      level: component (system layer)
+      scope: "longer term"
+
+    memos:
+      # add yet another layer of protection
+      - Hints at the relationship between some of the AIs
+      - Ambitious but planned before incident (like many high-level AIs?)
+
+  AI-9:
+    # We didn’t update our status page quickly enough [...] Automating update of the Cloudflare Status page.
+
+    motivation:
+      experience: They did not update the status page quickly enough 
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - delayed customer communication
+        - manual action required (updating the status page)
+        - automated action (missing automated status updates)
+      iso:
+        - Self-descriptiveness
+        - Operability (missing automation)
+
+    item:
+      action: Automate updates about incident status
+      target: Customer communication with status reporting tooling
+      goal: Quicker customer communication during incident
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (status transparency & timeliness)
+      temporal: new
+      google-ai:
+        - mitigate future #/ communication
+
+    themes:
+      - automating support / customer communication
+
+    other:
+      modification: Automate status update operation
+
+      

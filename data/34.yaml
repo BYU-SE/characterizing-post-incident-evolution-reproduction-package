@@ -1,0 +1,148 @@
+#
+# 34.yaml | Cloudflare
+# https://blog.cloudflare.com/how-cloudflare-erroneously-throttled-a-customers-web-traffic/
+#
+# They incorrectly throttled a customers web traffic
+# 
+
+IR-34:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # This incident has set off a number of workstreams inside Cloudflare to ensure better communication between teams, prevent such an incident happening, and to ensure that communications between Cloudflare and our customers are much clearer.
+    - Broad description of impact of incident
+
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # A Cloudflare engineer decided to apply a throttling mechanism to prevent the zone from pulling so much traffic from their origin. Let's be very clear on this action: Cloudflare does not have an established process to throttle customers that consume large amounts of bandwidth, and does not intend to have one. This remediation was a mistake, it was not sanctioned, and we deeply regret it. To make sure a similar incident does not happen, we are establishing clear rules to mitigate issues like this one. Any action taken against a customer domain, paying or not, will require multiple levels of approval and clear communication to the customer.
+
+    motivation:
+      experience: An engineer improperly applied a throttling mechanisms to an individual client which was causing network congestion
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (network congestion)
+        - limit approach (increasing but not reached in bandwidth)
+        - manual action (throttling mechanism)
+        - responder action (applied throttle)
+        - human factors (mistake, acting against company policy)
+        - responder tooling (what tools responder had to take action to congestion)
+      iso:
+        - Capacity
+        - User error protection
+        - Operability
+
+    item:
+      action: Establish rules of approval and communication to mitigate excessive usage
+      target: Incident response and mitigation runbooks and procedures
+      goal: Prevent future unsanctioned mitigation actions
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Operational documentation (runbooks)
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+
+    memos:
+      # we are establishing clear rules to mitigate issues like this one
+      - Similar: Condition, of way response was done (unacceptable), using words "like this one"
+  
+  
+  AI-2:
+    # A Cloudflare engineer decided to apply a throttling mechanism to prevent the zone from pulling so much traffic from their origin. Let's be very clear on this action: Cloudflare does not have an established process to throttle customers that consume large amounts of bandwidth, and does not intend to have one. This remediation was a mistake, it was not sanctioned, and we deeply regret it. To make sure a similar incident does not happen, we are establishing clear rules to mitigate issues like this one. [.. AI-1 ..] Our tooling will be improved to reflect this. We have many ways of traffic shaping in situations where a huge spike of traffic affects a link and could have applied a different mitigation in this instance.
+
+    motivation:
+      experience: An engineer improperly applied a throttling mechanisms to an individual client which was causing network congestion
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (network congestion)
+        - limit approach (increasing but not reached in bandwidth)
+        - manual action (throttling mechanism)
+        - responder action (applied throttle)
+        - human factors (mistake, acting against company policy)
+        - responder tooling (what tools responder had to take action to congestion)
+      iso:
+        - Capacity
+        - User error protection
+        - Operability
+
+    item:
+      action: Update tooling to reflect new rules of approval and communication for mitigation
+      target: Network throttling mechanisms
+      goal: Prevent future unsanctioned mitigation actions
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Infrastructure / Network routing
+        - Maintenance / TODO
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Change tooling to handle spikes (don't throttle customers)
+
+    memos:
+      # we are establishing clear rules to mitigate issues like this one
+      - Similar: Condition, of way response was done (unacceptable), using words "like this one"
+  
+  AI-3:
+    # We are in the process of rewriting our terms of service to better reflect the type of services that our customers deliver on our platform today. We are also committed to explaining to our users in plain language what is permitted under self-service plans. As a developer-first company with transparency as one of its core principles, we know we can do better here. We will follow up with a blog post dedicated to these changes later.
+
+    motivation:
+      experience: An engineer improperly applied a throttling mechanisms to an individual client which was causing network congestion
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (network congestion)
+        - limit approach (increasing but not reached in bandwidth)
+        - manual action (throttling mechanism)
+        - responder action (applied throttle)
+        - human factors (mistake, acting against company policy)
+        - responder tooling (what tools responder had to take action to congestion)
+      iso:
+        - Capacity
+        - User error protection
+        - Operability
+
+    item:
+      action: Rewrite terms of service and announce over a blog post
+      target: Customer communication (terms of service document)
+      goal: Increase clarity of allowed usage
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Terms of Service documents
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - repair
+

@@ -1,0 +1,131 @@
+#
+# 26.yaml | Incident
+# https://incident.io/blog/intermittent-downtime
+#
+# Unhandled panics caused app to crash.
+#
+#
+# Researcher Notes:
+#
+# We treat mitigations in this incident report as action items since they called a pause to regroup in which they checked in with everyone, wrote a collective understanding of the incident, and then decided on the next steps and allocated work? The report is written 2 weeks after the incident, and the work it describes was done within a few hours.
+
+IR-26:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Architecture / Prevent and tolerate (risk despite fix): 
+      - AI-1 contain failure to one component
+      - AI-2 limit propagation (physically split app)
+
+  memos:
+    # so we take incidents like this seriously
+    - This is a common sentiment in IRs; the proof is in the AIs (intentionality)
+
+    # From previous incidents, we’ve learned that manually restarting dynos via the Heroku console is a sensible response [...] Prior incident experience means our guess is a bad [...] And a few engineers start debugging using a variety of tools, from logs, metrics and traces to try and figure out what’s going on
+    - Early in incident prior experience guides response; but new info is key
+
+    # We also turn off several non-critical parts of the app that trigger async work, prioritizing core incident functionality over features such as incident nudges
+    - The ability to manage a system during an incident is an interesting combination of people and systems that have points of adaptability
+    - Prioritization: Core features more important during incident
+
+    # Firstly, while we have Heroku capturing logs from each Dyno stdout/stderr into Corologix, when a Go app panics it will print the stacktrace of every goroutine in the application [...] our application runs with ~300 goroutines, printing the stacktrace of each goroutine caused Heroku to buffer and drop these log lines, preventing us from seeing the original crashing stacktrace [...] Finally, Heroku’s rate limiting of the logs was even impacting the logs that came just prior to a crash, so we couldn’t even see when we began to process the problematic event.
+    - Too much logging actually made it hard to diagnose issue (usually the issue is too little information)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Mitigation 1: Ensuring we handle message panics. We add these panic handlers all over our app, so we shouldn’t have hit this issue. But clearly we did, given our app has just crashed repeatedly. The generic receiver did apply a recover, but we’d missed that the implementation of sub.Receive – which is in the Google Cloud Pub/Sub client – starts several new goroutines to handle the anonymous function we provide to the Receive method. So our first mitigation was to apply a recover to this handler, which we deployed at 16:48. Since this is a common piece of code used by all our event handlers, this mitigates the issue which caused this incident but it also removes this entire problem class for all other current and future subscriptions too.
+
+    motivation:
+      experience: A message added to the queue was unhandled, causing a crash
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (unhandled message, missing crash handling code)
+      iso:
+        - Fail safe
+
+    item:
+      action: Add missing crash handling code ("a recover")
+      target: App exception handling for async workers
+      goal: Prevent crashes from taking down the entire application (limit blast radius)
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (handle crashes)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective mechanism to gracefully handle crashes
+      activity: deploy
+      level: system
+
+    memos:
+      # [Referring to a mitigation they took] Since this is a common piece of code used by all our event handlers, this mitigates the issue which caused this incident but it also removes this entire problem class for all other current and future subscriptions too.
+      - Similar: Condition, locality, same failure mode
+      - Class of Problems: Same failure mode (similar)
+      - Fix code used widely in application (for all event types)
+
+      # which we deployed at 16:48.
+      - Completed: Finished shortly after incident
+
+  AI-2:
+    # Mitigation 2: Separate our app by work type. It’s considered best practice to run different work types – say web requests, async workers, and long-running cron jobs – separately from one another. That's because [..] If one type of work behaves badly, such as panicking, it can’t adversely impact everything else. [..] We had begun the process of splitting these work types before this incident, and the app already had a clear logical separation between web, async workers and crons. The reason we hadn't completed the split was that we'd already got most of the value from logically separating, and prefer running as simple an app as possible. Adding another dyno would also increase our CI times slightly, so we'd been waiting for a clear push before making this change: obviously an incident like this is exactly that trigger. So after confirming we were happy with the approach, we implemented the physical split by adding a new ‘worker’ Dyno tier to Heroku and tweaking each entrypoint. [..] By 17:24, this change was running in production.
+
+    motivation:
+      experience: A crash in the one type of work caused the entire app to crash, cascading into all types of work (same binary)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (shared binary)
+        - multi-tenancy
+        - propagation (failure to all work types via shared binary)
+      iso:
+        - Fail safe
+        - Fault tolerance
+
+    item:
+      action: Physically split app by work type (add "Dyno")
+      target: App design (what work type runs where)
+      goal: Prevent adverse events (panics) from impacting other types of work
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Execution structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (split & isolation to limit impact)
+      temporal: previously started
+      google-ai:
+        - mitigate future #/ limit scope of impact 
+
+    other:
+      modification: Partition application into two binaries
+      level: system
+
+    memos:
+      # By 17:24, this change was running in production.
+      - Completed: Finished shortly after incident
+
+      # We had begun the process of splitting these work types before this incident, and the app already had a clear logical separation between web, async workers and crons. The reason we hadn't completed the split was that we'd already got most of the value from logically separating, and prefer running as simple an app as possible. Adding another dyno would also increase our CI times slightly, so we'd been waiting for a clear push before making this change: obviously an incident like this is exactly that trigger.
+      - Prioritization: Reprioritize, Work had begun for different reasons, and they stopped early at a good point. Then this incident pushed them to do it "better" and their earlier work made it super easy.
+
+      - Fast-Then-Better: Their early local separation between process types was done because they got "most of the value from logically separating" and they "prefer running as a simple an app as possible". Then they had this incident and did it the full way.
+
+      - Best-Practice: Move towards doing what is already established as best

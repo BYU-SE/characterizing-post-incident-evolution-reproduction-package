@@ -1,0 +1,97 @@
+#
+# 52.yaml | Algolia
+# https://www.algolia.com/blog/engineering/may-30-ssl-incident/
+#
+# A certificate expiration (from a third party) led to an outage, despite them having monitoring and awareness tools of certificates they manage
+# 
+#
+# Researcher Notes:
+#
+
+IR-52:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # We’re reaching out to impacted customers and explaining what happened
+    motivation:
+      experience: UNCLEAR (a failure occurred)
+
+    item:
+      action: Communicate with customers
+      target: Customers
+      goal: Explain what happened to impacted customers
+
+      action-type:
+        - formative / other
+      target-type:
+        - Other
+      sts:
+        - People
+      temporal: new
+      google-ai:
+        - repair
+
+  AI-2:
+    # On May 30, a minute after 10:48 UTC when the certification authorities expired, our Site Reliability Engineering (SRE) team got notified that there was a certificate problem with our service. This was an unexpected message because we carefully check that our certificates are valid and don’t expire any time soon. [..] we're improving our certificate checking tool to verify expiration in the full chain, not just our leaf certificate
+
+    motivation:
+      experience: Tooling did not catch the certificate problem
+      lifecycle:
+        - Failure / Inception # [TODO] Are these right?
+      tags:
+        - cert expiration
+        - tooling (should have caught)
+        - limit hit (certificate expiration)
+      iso:
+        - Risk identification # [TODO] Need to standardize on when it is risk identification vs Operational constraint for staging and pre-production tests. Do this across all
+
+    item:
+      action: Verify expiration in the full chain, not just leaf certificate
+      target: Certificate checking tool
+      goal: Catch invalid certificates, more than leaf cert.
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Tooling
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-3:
+    # we’ll include OpenSSL in our annual Open Source donations and will financially support the work of the OpenSSL team.
+
+    motivation:
+      experience: UNCLEAR (openSSL involved in incident?)
+
+    item:
+      action: Donate to OpenSSL team
+      target: OpenSSL team
+      goal: Support software in toolchain
+
+      action-type:
+        - evo / add
+      target-type:
+        - Other
+      sts:
+        - People
+      temporal: new
+      google-ai:
+        - prevent

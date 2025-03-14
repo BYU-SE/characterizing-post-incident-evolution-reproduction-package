@@ -1,0 +1,269 @@
+#
+# 18.yaml | Slack
+# https://slack.engineering/slacks-outage-on-january-4th-2021/
+#
+# The first Monday when people return to work after the holidays caches are cold and traffic is high. High load (and slow network TGW auto-scaling by AWS) lead to high packet loss, some follow on failures (eg, the provisioning service) and finally an outage.
+#
+#
+# Researcher Notes:
+#
+
+IR-18:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Resources / Headroom in depth (double up): # prevent overload but different types
+      - AI-1 autoscaling algorithm (increase rate)
+      - AI-2 manual preemptive (seasonally)
+
+  memos:
+    # Every incident is an opportunity to learn, and an unplanned investment in future reliability.
+    - Yet another quote that capture the essence of FDSE
+
+    # At this point Slack itself was still up - at 6.57am PST 99% of Slack messages were being sent successfully (but our success rate for message sending is usually over 99.999%, so this was not normal) [later] Slack became unavailable.
+    - Early-Responding: Incident response beginning before the outage (failure during response)
+
+    # AWS assures us that they are reviewing the TGW scaling algorithms for large packet-per-second increases as part of their post-incident process.
+    - Third-Party: Separate third party post-incident analysis conducted as well (not linked)
+
+    # Every incident is an opportunity to learn, and an unplanned investment in future reliability.
+    - Learning: How this happens & the meaning of "reliability" is a core research question
+
+  ######################################
+  # AIs
+  ######################################
+
+  # [Context for all of the actions ...] Traffic is lower over the holidays, as everyone disconnects from work (good job on the work-life balance, Slack users!). On the first Monday back, client caches are cold and clients pull down more data than usual on their first connection to Slack. We go from our quietest time of the whole year to one of our biggest days quite literally overnight.
+
+  AI-1:
+    # The AWS Transit Gateways (TGWs) are managed by AWS and are intended to scale transparently to us [however, Slack's traffic pattern is unusual and] our TGWs did not scale fast enough. During the incident, AWS engineers were alerted to our packet drops by their own internal monitoring, and increased our TGW capacity manually. AWS assures us that they are reviewing the AWS Transit Gateway (TGW) scaling algorithms for large packet-per-second increases as part of their post-incident process.
+
+    motivation:
+      experience: AWS Transit Gateways did not scale fast enough when everyone came back to work (led to a different traffic pattern).
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike from returning to work)
+        - automated scaling actions (could not scale up quick enough due to third party scaling)
+      iso:
+        - Capacity
+        - Scalability
+
+    item:
+      action: Third party will review scaling algorithm for specific case
+      target: Network gateways (AWS TGWs)
+      goal: Prevent overload during rapid packet increases
+
+      action-type:
+        - formative / check
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Flexibility / Scalability (behavior at steep spikes)
+      temporal: new
+      google-ai:
+        - prevent #/ trigger of incident
+
+
+    other:
+      modification: Scaling algorithm changes (high rate of increase)
+      activity: review algorithm
+      level: component
+
+    memos:
+      - Third-party
+      - Defense-In-Depth: (AI-1, AI-2) Avoid overload during spikes
+      - Improving-Understanding: Investigation required into the scaling algorithm
+
+  AI-2:
+    #  We use AWS Transit Gateways (TGWs) as hubs to link our VPCs [...] one of our Transit Gateways became overloaded [and] our TGWs did not scale fast enough [until AWS engineers were alerted] We’ve also set ourselves a reminder (a Slack reminder, of course) to request a preemptive upscaling of our TGWs at the end of the next holiday season.
+
+    motivation:
+      experience: AWS Transit Gateways did not scale fast enough when everyone came back to work (led to a different traffic pattern).
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike from returning to work)
+        - automated scaling actions (could not scale up quick enough due to third party scaling)
+        - infrastructure disruption (network overloaded)
+      iso:
+        - Capacity
+        - Scalability
+
+    item:
+      action: Plan to preemptively request scaling up (seasonally)
+      target: Network gateways (AWS TGWs)
+      goal: Prevent overload during seasonal high-load events (predictable spike)
+
+      action-type:
+        - formative / schedule
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent #/ trigger of incident
+
+    other:
+      modification: Scale up service manually & preemptively (seasonal spike)
+      activity: add reminder
+      level: component
+
+    memos:
+      - Similar: Conditions, Anticipation, seasonal spikes makes some cases predictable
+      - Auto-scaling vs preemptive scaling (for predictable traffic spike)
+      - Defense-In-Depth: (AI-1, AI-2) Avoid overload during spikes
+
+      # while we were in the early stages of investigating, our dashboarding and alerting service became unavailable [...] all debugging and investigation was now hampered by the lack of our usual dashboards and alerts
+      - Can not resolve blind (see also incident 19)
+
+      # To narrow down the list of possible causes we quickly rolled back some changes that had been pushed out that day (turned out they weren’t the issue).
+      - Often a reasonable assumption and at least it reduces possibilities (wrong, though)
+
+  AI-3:
+    #  [Early in incident] our dashboarding and alerting service became unavailable [...] Our metrics backends were still up, meaning that we were able to query them directly [...] and investigation was now hampered by the lack of our usual dashboards and alerts [...] We make efforts to keep our monitoring tools as independent of Slack’s infrastructure as possible, so that they don’t fail us when we need them the most. In this case, our dashboard and alerting services failed because they were running in a different VPC from their backend databases, creating a dependency on the TGWs. Running the dashboard service instances in the same VPC as their database will remove this dependency.
+
+    motivation:
+      experience: Dashboard/alerting services failed (but not metrics backend) during incident due to running the dashboard instances in a different VPC than the backend databases they depend on
+      lifecycle:
+        - Response / Diagnosis
+        - Failure / Downstream Effects
+      tags:
+        - delayed RCA (monitoring dashboards unavailable)
+        - propagation (failure to monitoring dashboards via hard infrastructure dependency)
+      iso:
+        - Recoverability
+
+    item:
+      action: Collocate service (dashboard) and dependency (database)
+      target: Dashboard & alerting system with database (with dependency on TGWs)
+      goal: Increase reliability by removing dependency (network gateway)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Execution structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (dependency)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Remodel system to colocate (support) services
+      activity: collocate services
+      level: system
+
+    themes:
+      - support tooling failing with systems
+
+    memos:
+      - Concept--Relationships btw metrics systems (etc) and its consequences
+
+  AI-4:
+    # The spike of load from the simultaneous provisioning of so many instances under suboptimal network conditions meant that provision-service hit two separate resource bottlenecks (the most significant one was the Linux open files limit, but we also exceeded an AWS quota limit) [...] Finally, we’ll make sure to regularly load test provision-service to make sure there aren’t any more scaling problems in store (we’ve load tested it in the past but this event exceeded our previous scale-ups).
+
+    motivation:
+      experience: Provision service hit two separate bottlenecks under the spike of load and suboptimal network conditions
+      lifecycle:  
+        # 6.57am sort of ok ..
+        # 7am hourly traffic peak
+        # 7:01am PST and 7:15am PST
+        - Failure / Downstream Effects
+      tags:
+        - automated scaling actions (bottlenecks, scaling under duress)
+        - bottlenecks (open file limit, aws quota limit)
+        - limit hit (open file limit, aws quota limit)
+        - high load (spike, poor handling in conditions)
+        - infrastructure disruption (network overloaded)
+      iso:
+        - Scalability
+        - Capacity
+
+    item:
+      action: Add regular load testing for service (and at higher load)
+      target: Testing practices (provisioning service)
+      goal: Identify any additional scaling problems ("in extreme circumstances")
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Process / Testing activities and practices # / Load testing
+      intended-effect:
+        - Flexibility / Scalability (management)
+      temporal: new
+      google-ai:
+        - prevent #/ identify similar vulnerabilities
+
+    other:
+      modification: Regularly load test (test scaling)
+      activity: regular task
+      level: system
+
+    memos:
+      - Similar: Symptom, Locality, other scaling issues or bottlenecks (at future peaks) in this system
+      - Existing load testing is not on going or routine, sounds like
+      # we’ve load tested it in the past but this event exceeded our previous scale-ups [...] even in extreme circumstances such as this significant network disruption.
+      - Load experienced was higher than in test AND involved network disruption
+
+  AI-5:
+    # The spike of load from the simultaneous provisioning of so many instances under suboptimal network conditions meant that provision-service hit two separate resource bottlenecks (the most significant one was the Linux open files limit, but we also exceeded an AWS quota limit) [...] We will also reevaluate our health-checking and autoscaling configurations to prevent inadvertently overloading provision-service again, even in extreme circumstances such as this significant network disruption.
+
+    motivation:
+      experience: Provision service hit two separate bottlenecks under the spike of load and suboptimal network conditions
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions (bottlenecks, scaling under duress)
+        - bottlenecks (open file limit, aws quota limit)
+        - limit hit (open file limit, aws quota limit)
+        - high load (spike, poor handling in conditions)
+        - infrastructure disruption (network overloaded)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Reevaluate effects of health-check and autoscale configurations
+      target: Health checking and autoscaling configuration
+      goal: Prevent overloading service in extreme circumstances
+
+      action-type:
+        - formative / check
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Flexibility / Scalability (behavior at scale)
+        - Reliability / Faultlessness (well-behaved & prevent inadvertent overload)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Adjust health checking logic (keep healthy hosts)
+      activity: reevaluate configurations (health checks and autoscaling)
+      level: component interactions
+
+    themes:
+      - automation / fix mitigation mechanism (health checking, autoscaling)
+
+    memos:
+      - Improving-Understanding: Investigation required
+
+      # even in extreme circumstances such as this significant network disruption
+      - Similar: Impact, Symptoms, They seem to have a notion of similarly "extreme circumstances"

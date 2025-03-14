@@ -1,0 +1,404 @@
+#
+# 44.yaml | AWS
+# https://aws.amazon.com/message/12721/
+#
+# An automated scaling activity triggered a surge of re-connections that overwhelmed the networking devices between the internal network and the main AWS network, resulting in errors for many services using the networks
+#
+# Researcher Notes:
+#
+
+IR-44:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / Freeze-plan-fix-unfreeze: 
+      # These remediations give us confidence that we will not see a recurrence of this issue.
+      - AI-0 scaling up so autoscaler can be disabled
+      - AI-1 temporary measure (immediate safety)
+      - AI-3 fix issue (trigger)
+      - AI-4 deploy protections
+      - AI-2 resume (undo AI-1 now that it feels safe)
+
+    - Architecture / Evolving Along the Propagation Path:
+      - AI-3 in dependent services interaction code
+      - AI-4 along the network
+      - AI-5 in API Gateway which was affected
+      - AI-6 in API Gateway which was affected
+      - AI-7 in Support Services which was affected
+      - AI-8 in Support Services which was affected
+
+  memos:
+    # We have taken several actions to prevent a recurrence of this event. [..] We have also deployed additional network configuration that protects potentially impacted networking devices even in the face of a similar congestion event. These remediations give us confidence that we will not see a recurrence of this issue.
+    - Similar_Explicit: Congestion event
+    - Uncertainty: The opposite of confidence
+    - Restoring-Trust: Purpose of AIs
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [An automated activity to scale an AWS services triggered a surge in reconnections] We have taken several actions to prevent a recurrence of this event. We immediately disabled the scaling activities that triggered this event and will not resume them until we have deployed all remediations. Our systems are scaled adequately so that we do not need to resume these activities in the near-term. These remediations give us confidence that we will not see a recurrence of this issue.
+
+    motivation:
+      experience: Automated scale up of internal service resulted in surge of connection activities which added latency to communications and latency increased timeouts and retries.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions (triggered reconnection storm)
+        - high load (surge from retries, vicious cycle)
+      iso:
+        - Scaling
+        - Fault tolerance
+
+    item:
+      action: Disable the scaling activities (temporarily)
+      target: Fleet auto-scaling (VAGUE)
+      goal: Give us confidence that we will not see a recurrence of this issue
+
+      action-type:
+        - evo / subtract #/ disable
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Operational constraint (trust)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Disable (temporarily) auto-scaling mechanisms (trigger)
+      Temporary: Evolution is known to be temporary at planning phase.
+      timing: temporary deactivation / immediate
+      qa-category: keep within range / avoid triggering (network congestion)
+
+    themes:
+      - automation / fix autoscaling (stop temporarily)
+
+    memos:
+      #  We immediately disabled the scaling activities that triggered this event and will not resume them until we have deployed all remediations.
+      - This is a bandaid fix, which will be undone as a final action item
+      - Similar_Explicit: Congestion event ('see a recurrence of this issue') (AI-1, AI-2, AI-3, AI-4)
+      - Restoring-Trust: Giving confidence that there will not be a reoccurrence temporary until permanent fix is done
+
+  
+  AI-2:
+    # [An automated activity to scale an AWS services triggered a surge in reconnections] We have taken several actions to prevent a recurrence of this event. We immediately disabled the scaling activities that triggered this event and will not resume them until we have deployed all remediations. Our systems are scaled adequately so that we do not need to resume these activities in the near-term. These remediations give us confidence that we will not see a recurrence of this issue.
+
+    motivation:
+      experience: Automated scale up of internal service resulted in surge of connection activities which added latency to communications and latency increased timeouts and retries.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions (triggered reconnection storm)
+        - high load (surge from retries, vicious cycle)
+      iso:
+        - Scaling
+        - Fault tolerance
+
+    item:
+      action: Resume the scaling activities
+      target: Fleet auto-scaling
+      goal: Adequately scale the service # complements AI-1, and its the pair of disable and re-enable that is for preventing
+
+      action-type:
+        - evo / add #/ resume
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Operational constraint (trust)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix and re-enable auto-scaling activities (trigger)
+      Temporary: This is the undo for AI-1.
+      timing: after other AIs ("all remediations")
+      qa-category: keep within range / avoid triggering (network congestion)
+
+    themes:
+      - automation / fix autoscaling (undoing AI-1)
+
+    memos:
+      #  We immediately disabled the scaling activities that triggered this event and will not resume them until we have deployed all remediations.
+      - Similar_Explicit: Congestion event ('see a recurrence of this issue') (AI-1, AI-2, AI-3, AI-4)
+      - manual action required to pause and unpause
+
+  AI-3:
+    # We have taken several actions to prevent a recurrence of this event.  Our networking clients have well tested request back-off behaviors that are designed to allow our systems to recover from these sorts of congestion events, but, a latent issue prevented these clients from adequately backing off during this event. This code path has been in production for many years but the automated scaling activity triggered a previously unobserved behavior. We are developing a fix for this issue and expect to deploy this change over the next two weeks. These remediations give us confidence that we will not see a recurrence of this issue.
+
+    motivation:
+      experience: Latent defect with backoff strategy increased congestion
+      lifecycle:
+        - Failure / Recovery # (did not automatically recover)
+      tags:
+        - defect (latent for years, prevented clients from adequately backing off)
+        - automated scaling actions (triggered reconnection storm)
+        - high load (surge from retries, vicious cycle)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix for a latent issue with back-off
+      target: Networking clients retry strategy
+      goal: Give us confidence that we will not see a recurrence of this issue
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Recoverability ("allow our systems to recover")
+        - Reliability / Faultlessness (well-behaved & backs off)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix latent backoff defect (also reduce)
+      activity: design, deploy
+      level: component interactions
+      timing: short-term / "next two weeks"
+      qa-category: recovering to safe range / backoff to avoid vicious cycle
+
+    memos:
+      # We are developing a fix for this issue and expect to deploy this change over the next two weeks.
+      - Includes a schedule for when the AI will be completed
+      - Commitment: High, since it is scheduled (when)
+
+      # This code path has been in production for many years but the automated scaling activity triggered a previously unobserved behavior.
+      - An AI for something unexpected despite being in production for a while
+      - Similar_Explicit: Congestion event ('a similar congestion event', 'see a recurrence of this issue') (AI-1, AI-2, AI-3, AI-4)
+
+  AI-4:
+    # We have taken several actions to prevent a recurrence of this event.  We have also deployed additional network configuration that protects potentially impacted networking devices even in the face of a similar congestion event. These remediations give us confidence that we will not see a recurrence of this issue.
+
+    motivation:
+      experience: Automated scale up of internal service resulted in surge of connection activities which added latency to communications and latency increased timeouts and retries.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions (triggered reconnection storm)
+        - high load (surge from retries, vicious cycle)
+      iso:
+        - Scaling
+        - Fault tolerance
+
+    item:
+      action: Deploy additional protections for impacted networking devices
+      target: Network configurations
+      goal: Give us confidence that we will not see a recurrence of this issue
+
+      action-type:
+        - evo / add
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective network configuration (for congestion issues)
+      activity: deploy
+      level: component
+      timing: done / days
+      qa-category: contain failure / protect against congestion events
+
+    memos:
+      - Similar: Condition, Locality, Congestion event. Also, they specify recurrence of this event, and similar ones independently
+      - Similar_Explicit: Congestion event ('a similar congestion event', 'see a recurrence of this issue') (AI-1, AI-2, AI-3, AI-4)
+
+  AI-5:
+    # API Gateway, which is often used to invoke Lambda functions as well as an API management service for customer applications, experienced increased error rates. API Gateway servers were impacted by their inability to communicate with the internal network during the early part of this event. As a result of these errors, many API Gateway servers eventually got into a state where they needed to be replaced in order to serve requests successfully. This normally happens through an automated recycling process, but this was not possible until the EC2 APIs began recovering. While API Gateways began seeing recovery at 1:35 PM PST, errors and latencies remained elevated as API Gateway capacity was recycled by the automated process working through the backlog of affected servers. The service largely recovered by 4:37 PM PST, but API Gateway customers may have continued to experience low levels of errors and throttling for several hours as API Gateways fully stabilized. The API Gateway team is working on a set of mitigations to ensure that API Gateway servers remain healthy even when the internal network is unavailable and [continued below ...] 
+
+    motivation:
+      experience: API Gateways were affected by their inability to communicate on the internal network and got into a state where they needed to be replaced to serve requests successfully
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure to dependency via network degradation)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Perform some "mitigations" (VAGUE)
+      target: Automated recycling component (for servers)
+      goal: To help servers remain healthy even when internal network is unavailable
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Fault tolerance
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Stay healthy when network is down 
+
+    other:
+      modification: Prevent error state (limit automated recycling)
+      level: component
+      timing: started
+      qa-category: contain failure AND recover to safe range
+
+    themes:
+      - ungraceful recovery / recovery dependency ("until ... began recovering")
+      - automation / fix mitigation (server recycling)
+
+    memos:
+    - Similar_Explicit: Availability of critical dependency ('in the event of a similar issue in the future') (AI-5, AI-6)
+
+  AI-6:
+    # [continued from above ...] and making improvements to the recycling process to speed recovery efforts in the event of a similar issue in the future. 
+
+    motivation:
+      experience: API Gateways were affected by their inability to communicate on the internal network and got into a state where they needed to be replaced to serve requests successfully. This replacement process took several hours as the automated process worked through a backlog of affected servers
+      lifecycle:
+        - Failure / Downstream Effects
+        - Failure / Recovery
+      tags:
+        - propagation (failure to dependency via network degradation)
+        - slow mitigation
+        - slow operation (recycling of old servers)
+      iso:
+        - Fault tolerance
+        - Recoverability
+
+    item:
+      action: Making improvements (VAGUE)
+      target: Automated recycling component (for servers)
+      goal: To speed recovery efforts in the event of a similar issue in the future
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Changes to speed up server recycling (VAGUE)
+      level: component
+      timing: started
+      qa-category: recover to safe range
+
+    themes:
+      - ungraceful recovery
+      - automation / faster mitigation (server recycling)
+
+    memos:
+      # similar issue in the future. 
+      - Similar: Condition, Locality, They know that something similar can happen in the future, despite these mitigations
+      - Similar_Explicit: Availability of critical dependency ('in the event of a similar issue in the future') (AI-5, AI-6)
+
+  AI-7:
+    # We have been working on several enhancements to our Support Services to ensure we can more reliably and quickly communicate with customers during operational issues. We expect to release a new version of our Service Health Dashboard early next year that will make it easier to understand service impact and [... continued below ...]
+
+    motivation:
+      experience: Impairment to monitoring systems delayed understanding of event and networking congestion impaired status page from failing over to standby region
+      lifecycle:
+        - Failure / Downstream Effects
+        - Response / Customer communication
+      tags:
+        - customer communication (interference)
+        - propagation (failure to dependency via hard dependency, failover broken)
+      iso:
+        - Fault tolerance
+        - User assistance
+
+    item:
+      action: Work on several enhancements relating to communication during incidents and system architecture (VAGUE)
+      target: Status Page (health dashboard)
+      goal: Reliably and quickly communicate with customers during incidents
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (understanding & timely)
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Replace service dashboard version (quick and reliable)
+      activity: redesign
+      level: system
+      timing: medium term / month or so (release planning)
+      qa-category: visibility into behavior ("service impact")
+
+  
+  AI-8:
+    # [... continued from above ...] a new support system architecture that actively runs across multiple AWS regions to ensure we do not have delays in communicating with customers. 
+
+    motivation:
+      experience: Impairment to monitoring systems delayed understanding of event and networking congestion impaired status page from failing over to standby region
+      lifecycle:
+        - Failure / Downstream Effects
+        - Response / Customer communication
+      tags:
+        - customer communication (interference)
+        - propagation (failure to dependency via hard dependency, failover broken)
+      iso:
+        - Fault tolerance
+        - User assistance
+
+    item:
+      action: Enhance communication during incidents and system architecture (VAGUE)
+      target: Customer communication system (new, active in multiple AZs)
+      goal: Reliably and quickly communicate with customers during incidents
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Architecture and interactions / Execution structure
+        - Incident response tools and process / Communication / Support
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance
+        - Interaction Capability / User assistance (understanding & timely)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Remodel support architecture (multiple AZs)
+      activity: redesign
+      level: system
+      timing: medium term / month or so (release planning)
+      qa-category: contain failure (avoid "delays in communicating with customers")
+
+    themes:
+      - architecture to isolate support systems (multiple regions)

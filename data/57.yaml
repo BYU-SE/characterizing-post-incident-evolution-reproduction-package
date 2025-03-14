@@ -1,0 +1,63 @@
+#
+# 57.yaml | Zerodha
+# https://zerodha.com/marketintel/bulletin/105569/postmortem-trading-and-hanging-orders-on-12th-april-2018
+#
+# A network connection failed, and a backup connection began to go up and down over the next hour affecting customers.
+# 
+#
+# Researcher Notes:
+#
+
+IR-57:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # On the leased line connectivity side, unfortunately there is nothing we can do. We are allowed only one backup for every CTCL. It is heart wrenching when incidents like this happen which we have no control on. We have invested significant amounts of money to ensure upkeep of our connectivity, but leased line reliability in India, even from the exchange approved vendors, is extremely poor. At the scale of our business in terms of number of traders using us, these incidents snowball and hurt us more than others.
+    - Boundaries and control: Note that there are no action items they can do. They have no control. In other words, prevention is impossible
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The issue when this happens though is with bracket and cover orders (BO, CO). In a bracket and cover order, there are counter leg square off orders which never gets placed when the primary orders are lapsed. What this means is a hanging BO/CO position which can’t be exited in the normal way. We advise clients to take opposite position using MIS/NRML when this happens if they intend to exit such hanging position. [.. So] We have a new release by end of this month where bracket and cover orders will have an option to exit from open position itself. Currently the exit option shows up only on the counter leg open orders. So even if you don’t see a counter leg open order, you can exit the BO/CO position from admin position directly.
+
+    motivation:
+      experience: After network failures, customer's trading was left in a "hanging position"
+      lifecycle:
+        - Failure / Downstream Effects # on customer
+      tags:
+        - infrastructure disruption (network flapping)
+        - propagation (failure to dependency via hard dependency on network)
+      iso:
+        - Fail Safe
+        - Operational constraint
+
+    item:
+      action: Add option to software to allow customers to handle edge cases
+      target: Financial service (customer feature)
+      goal: Reduce manual effort (by customers) needed after an incident
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Interaction Capability / User assistance # TODO:JS: or is this functionality?
+      temporal: new
+      google-ai:
+        - mitigate future
+      
+
+    other:
+      modification: Add feature (user options in failure scenario)
+      activity: design, deploy
+      level: component

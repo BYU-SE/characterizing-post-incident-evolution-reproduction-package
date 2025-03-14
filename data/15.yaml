@@ -1,0 +1,75 @@
+#
+# 15.yaml | Zalando
+# https://github.com/zalando-incubator/kubernetes-on-aws/blob/dev/docs/postmortems/jun-2019-kubelet-qps.md
+#
+# Linked PA's PR: https://github.com/zalando-incubator/kubernetes-on-aws/pull/2247
+#
+# Description: Continuous delivery platform builds were failing for almost an hour since pods couldn't get AWS IAM credentials. A low request rate limit on a configuring process and the rapid creation and deletion of pods caused the configuring process to fall behind.
+#
+#
+# Researcher Notes:
+#
+#
+
+IR-15:
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better (mitigating then better):
+      - AI-0 scale up cluster (immediate)
+      - AI-2 change configuration (rate limit) 
+
+  memos:
+    - Only fix the direct root cause/condition (shallow analysis)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # CDP builds were timing out and failing because Kubernetes builder Pods couldn’t get AWS IAM credentials [because too many nodes started up for the very low qps setting on the kubernetes API server] To stop the bleeding, the cluster was manually scaled up so builder Pods would be spread over more than 1 node. For a permanent fix, the Kubelet QPS was increased from 5 (default) to 50 via a global cluster configuration.
+
+    motivation:
+      experience: Low configured rate limit for operation (API requests) led to outage when too many requests were being made to only one node
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (rate limit for operation, configured low)
+        - high load (too high for single pod with rate limits)
+      iso:
+        - Capacity
+
+    item:
+      action: Increase configured request rate limit
+      target: Cluster configuration (kubelet QPS value)
+      goal: Increase node creation throughput (preventing build failures)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent #/ handle triggering condition (high start rate)
+
+    other:
+      modification: Tune default configuration (increase limit)
+      activity: pull request 
+      level: component
+
+    memos:
+      - A default configuration value that was not appropriate
+      - Condition / Many nodes starting simultaneously
+      - Fix is in an external open source project (submitted PR)
+      - First-Fast-Then-Better: (Right) Permanent fix after a "to stop the bleeding" fix
+
+  

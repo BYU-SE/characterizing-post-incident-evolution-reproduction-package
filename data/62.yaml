@@ -1,0 +1,260 @@
+#
+# 62.yaml | Buildkite
+# https://buildkite.com/blog/outage-post-mortem-for-august-22nd
+#
+# An unplanned outage where no one was able to login, view build logs, or read documentation, which happened while engineers were asleep.
+# 
+#
+# Researcher Notes:
+#
+
+IR-62:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Automating / Maturing health checks:
+      - AI-2 decouple services (in health check)
+      - AI-3 add end to end check (with more rational actions)
+
+  memos:
+    # We can’t promise that we won’t go down again, but we can promise that we won’t make the same mistakes twice. Not only are we stronger technically, we’re a stronger team now because of it.
+    - Mindset about reliability
+
+    # It took us a while to figure out what was going on, and at 22:28 UTC we made some temporary fixes to get buildkite.com back online. Although we were able to start servicing web requests, our response times were really bad and some requests were just getting dropped.
+    - Temporary fixes but still couldn't recover from outage completely
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [The database experienced performance issues, the CPU started maxing out as they moved into peak traffic period. They had recently scaled down the database and had not observed it for very long.] Do load testing after significant infrastructure changes. Due to the tight time constraints before the next AWS bill, we didn’t load test the new database or the centralized pgbouncer setup. We’ve already started planning how this could work and ways we can do it without impacting others using the system.
+
+    motivation:
+      experience: They felt pressure to get these changes out sooner rather than later, and didn't do due diligence to figure out if the new database would perform under heavy load. The database became overloaded under peak traffic.
+      lifecycle:
+        - Pre-incident / Lead up
+      tags:
+        - skipped testing
+        - high load (peak traffic, overloaded the database)
+      iso:
+        - Risk identification
+      
+    item:
+      action: Do load testing after significant infrastructure changes without impacting others
+      target: Testing practices
+      goal: Prevent the overload scenario seen in the incident
+
+      action-type:
+        # - formative / discover options # This is a progress report
+        - evo / add
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Flexibility / Scalability (management)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Regularly load test after changes 
+      level: system
+
+    memos:
+      Formative: The formative nature of described in the context is largely about a progress report, rather than work they said they had to do.
+
+
+
+  AI-2:
+    # [Health checks failed because the database was down even though the app layer was healthy, leading to the ELB removing servers which were healthy]  We need to figure out the trade offs here: would we prefer all servers to get dropped out of an ELB? Or would we prefer to just throw HTTP 500 errors if it can’t connect to our database. We’ve switched it now to just return “OK” if it can hit the app. We don’t check database connectivity in this request anymore. [..AI-3..]
+
+    motivation:
+      experience: DB was overloaded, and health checks started to remove healthy servers due to a dependency on the database
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure into dependency via health checks)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Remove health check dependency on database
+      target: Health checking system for applications
+      goal: Prevent the removal of healthy application servers
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    themes:
+      - tradeoffs (how much to check with a health check)
+      - automation / fix health checks (scope and matching action)
+
+    other:
+      modification: Adjust health checking logic (exclude dep)
+      level: component-interactions
+
+
+  AI-3:
+    # [Health checks failed because the database was down even though the app layer was healthy, leading to the ELB removing servers which were healthy] We need to figure out the trade offs here: would we prefer all servers to get dropped out of an ELB? Or would we prefer to just throw HTTP 500 errors if it can’t connect to our database. [..AI-2..] We’re also considering adding another health check endpoint that Pingdom can hit which makes sure the application can connect to the database and any dependent services.
+
+    motivation:
+      experience: DB was overloaded, and health checks started to remove healthy servers due to a dependency on the database
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure into dependency via health checks)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Add health check endpoint for database and dependency connectivity
+      target: Health checking system for applications (external)
+      goal: Prevent the removal of healthy application servers
+
+      action-type:
+        - evo / add
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Fail safe (resolving health check issues) 
+
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Add external health check (include dep)
+      level: component-interactions
+
+    themes:
+      - automation / fix health checks (scope and matching action)
+
+    memos:
+      - Commitment: Wishy-washy language with "consider"
+
+  AI-4:
+    # [Replacement servers were not going healthy because they depended upon an image value, which when their website was down, defaulted to a very old version which no longer worked. This prevented them from coming back online.] We’ve now switched to storing the latest deployed revision as file on S3 and we reference that when newly launched servers need to self-deploy.
+
+    motivation:
+      experience: When the website went down, replacement servers used an old version (baked into the image as a default value)
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Downstream Effects
+      tags:
+        - defect (used bad default data when real data was unavailable)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Remove hard-coded image configuration and store image on S3 (change dependency)
+      target: Deployment process for application
+      goal: Remove hard-coded value and swap to a dependency which is more reliable for hosting VM images
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Startup
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Remove activation time dependency
+      level: system
+
+
+  AI-5:
+    # [The on-call setup failed when it couldn't reach the team which was asleep.] We’ve all done manual tests to ensure calls are getting through. We’d like to investigate whether or not we can trigger company-wide tests to make sure everyone’s setup is correct on a regular basis. 
+
+    motivation:
+      experience: On-call setup failed when it couldn't reach team which was asleep
+      lifecycle:
+        - Response / Triage
+      tags:
+        - delayed triage (can't reach team)
+        - human factors (on-call, sleeping during off hours, missed notifications)
+      iso:
+        - Recoverability
+
+    item:
+      action: Manually test paging settings and investigate company wide checks
+      target: Testing practices for paging setups
+      goal: Ensure everyone's setup is correct
+
+      action-type:
+        - formative / check
+      target-type:
+        - Tests / Activities
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Regularly test paging (automate manual)
+
+
+  AI-6:
+    # [The on-call setup failed when it couldn't reach the team which was asleep.] Another idea is to have PagerDuty call team members when they go “on-call” — or have a requirement that all Notification Rules contain a “Immediately phone” rule. We haven’t looked into whether or not PagerDuty supports this out of the box, but we’ll be reaching out to them to see what we can do.
+
+    motivation:
+      experience: On-call setup failed when it couldn't reach team which was asleep
+      lifecycle:
+        - Response / Triage
+      tags:
+        - delayed triage (can't reach team)
+        - human factors (on-call, sleeping during off hours, missed notifications)
+      iso:
+        - Recoverability
+
+    item:
+      action: Change paging settings to (include a) call
+      target: Paging setups
+      goal: Ensure on-call engineers are reached during an incident
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Detection (paging)
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Add test of pager setup for each new on-call rotation
+
+    memos:
+      - Commitment: language with "another idea is..."

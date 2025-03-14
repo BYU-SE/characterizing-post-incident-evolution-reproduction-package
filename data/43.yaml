@@ -1,0 +1,140 @@
+#
+# 43.yaml | Travis CI
+# http://blog.travis-ci.com/2019-04-11-incident-review-slow-booting-Linux-builds-outage
+# https://web.archive.org/web/20201202234951/http://blog.travis-ci.com/2019-04-11-incident-review-slow-booting-Linux-builds-outage
+#
+# Major outage resulting in builds on Linux and Windows infrastructures being delayed. The instance cleanup system was rate limited (by the cloud provider) on delete requests, preventing all action being taken on instances. Then they reached other resource limits, like SSD quota, leading to requeues and further API call usage.
+#
+# Researcher Notes:
+#
+
+IR-43:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Resources / Making-Headroom (request rate):
+      - AI-1 move from batches to continues deletes
+      - AI-2 optimize number of calls (per delete, say)
+
+  memos:
+    - AI-Section-Titled: Section called 'Measures taken after the incident'
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # At that moment, our instances cleanup system was set to delete stopped instances older than 3 hours. Given the number of previously created instances [a lot], this provoked many delete requests to our cloud provider, which then led to our API calls being rate limited. Due to our inability to delete instances, we eventually reached computing resource limits (e.g. SSD quota), causing requeues which further increased our number of API calls. Our cleanup system has been updated to delete stopped instances right away, instead of waiting for 3 hours to clean them up. By doing this, we are deleting them as they become terminated, reducing the number of requests done at the same time.
+
+    motivation:
+      experience: Exceeded cloud provider API rate limit, and eventually reached compute resource limits
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (API rate limit, resource limit)
+      iso:
+        - Capacity
+        - Time behavior
+
+
+    item:
+      action: Change time to delete stopped instances from 3 hours to immediately
+      target: Resource (cloud instances) clean up service
+      goal: Prevent running out of resources and reduce the number of requests to the API
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (space and requests)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Eliminate cleanup delay (less requests "at the same time")
+
+    memos:
+      - Change in mindset, why was this configuration 3 hours before, and this AI is to say that "that old way of thinking" isn't right (or isn't worth it) anymore
+
+
+  AI-2:
+    # Given the number of previously created instances [a lot], this provoked many delete requests to our cloud provider, which then led to our API calls being rate limited. Besides reducing the number of API requests when deleting instances, we are also working on improving all API calls to our cloud provider, to make all of our requests more efficient and avoid being rate limited again in the future.
+
+    motivation:
+      experience: Exceeded cloud provider API rate limit, and eventually reached compute resource limits
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (API rate limit, resource limit)
+      iso:
+        - Capacity
+        - Time behavior
+
+
+    item:
+      action: Improving and reducing API calls to cloud provider
+      target: Resource (cloud instances) clean up service & other cloud clients
+      goal: Make requests more efficient AND avoid being rate limited again in the future (which was why it took time to mitigate)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (requests)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Reduce requests to rate limited API (optimize)
+
+    memos:
+      - Goal is about avoiding a rate limit threshold, which is directly connected to mitigation time and capability.
+
+  AI-3:
+    # We are also adding more metrics to our system to improve the visibility on us possibly hitting rate limits, adding additional logging to the cleanup system, to get alerted in a timely manner.
+
+    motivation:
+      experience: Exceeded cloud provider API rate limit, and eventually reached compute resource limits, and eventually causing slowdown from all the failures and requeues.
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - limit hit (API rate limit, resource limit)
+        - backlog
+      iso:
+        - Capacity
+        - Time behavior
+
+    item:
+      action: Add more metrics to our system and adding logging
+      target: Metrics reporting and logging from clean up system
+      goal: Improve the visibility on hitting rate limits and get alerted in a timely manner
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability (timeliness)
+      temporal: new
+      google-ai:
+        - detect # / metrics (additional for hitting rate limits) and alerting (logging on cleanup)
+
+    other:
+      modification: Expose more metrics (rate limits)
+      level: component

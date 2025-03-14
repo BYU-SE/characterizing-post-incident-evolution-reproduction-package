@@ -1,0 +1,123 @@
+#
+# 72.yaml | Reddit
+# https://www.reddit.com/r/announcements/comments/4y0m56/why_reddit_was_down_on_aug_11/
+#
+# Reddit was down and unreachable for 1.5 hours and slow to respond for 1.5 hours when an infrastructure upgrade involving Zookeeper and an autoscaler terminated many of their application servers in 16 seconds.
+#
+# Researcher Notes:
+#
+
+IR-72:
+
+  extractedBy: JS
+  reviewedBy: Matt
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # As we modernize our infrastructure, we may continue to perform different types of server migrations. Since this was due to a unique and risky migration that is now complete, we don’t expect this exact combination of failures to occur again. However, we have identified several improvements that will increase our overall tolerance to mistakes that can occur during risky migrations. 
+    - This is about a rare operational action (not likely to need to be done again) but they still have AIs. Why? Because the incident demonstrated ways that various components (including people) behaved in an unsafe way under particular scenarios. And even if the migration will not be done again, there are other ways these scenarios ("mistakes") can occur and they want to tolerate those mistakes. And certain operations of the migration (disabling the package manager) are relevant more generally. [JS]
+    - FDSE: Preventing similar, but not exact same combination of failures
+    - Risk: Of similar from happening
+    - Similar: Not sure if this exact thing will happen again
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Since autoscaler reads from Zookeeper, we shut it off manually during the migration so it wouldn’t get confused about which servers should be available. It unexpectedly turned back on at 15:23PDT because our package management system noticed a manual change and reverted it. Autoscaler read the partially migrated Zookeeper data and terminated many of our application servers, which serve our website and API, and our caching servers, in 16 seconds. [..] Make our autoscaler less aggressive by putting limits to how many servers can be shut down at once.
+
+    motivation:
+      experience: Autoscaler turned on (unexpectedly) and terminated many servers very quickly during migration
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions
+        - automation failure (package management reverted manual turn off change, autoscaler removed lots of capacity quickly that they did want)
+      iso:
+        - Faultlessness
+        - Operability
+
+    item:
+      action: Limit how many servers can be shutdown at once
+      target: Autoscaler configuration
+      goal: Make autoscaler less aggressive (Limit damage that autoscaler can do in short time)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint 
+      temporal: new
+      google-ai:
+        - mitigate future
+    
+    themes:
+      - automation / fix server removals (limit)
+
+  AI-2:
+    # Since autoscaler reads from Zookeeper, we shut it off manually during the migration so it wouldn’t get confused about which servers should be available. It unexpectedly turned back on at 15:23PDT because our package management system noticed a manual change and reverted it. [..] Improve our migration process by having two engineers pair during risky parts of migrations.
+
+    motivation:
+      experience: Autoscaler turned on (unexpectedly) and terminated many servers very quickly during migration
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions
+        - automation failure (package management reverted manual turn off change, autoscaler removed lots of capacity quickly that they did want)
+      iso:
+        - Faultlessness
+        - Operability
+
+    item:
+      action: Use two engineers during risky parts of migrations
+      target: Maintenance procedures (migration procedures)
+      goal: Ensure migration is performed more safely
+
+      action-type:
+        - evo / alter # upgrade
+      target-type:
+        - SDLC / Maintenance
+      sts:
+        - Process / Migration
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-3:
+    # Since autoscaler reads from Zookeeper, we shut it off manually during the migration so it wouldn’t get confused about which servers should be available. It unexpectedly turned back on at 15:23PDT because our package management system noticed a manual change and reverted it. [..] Properly disable package management systems during migrations so they don’t affect systems unexpectedly.
+
+    motivation:
+      experience: Autoscaler turned on (unexpectedly) because package management systems noticed and reverted the manual change
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - automated scaling actions
+        - automation failure (package management reverted manual turn off change)
+      iso:
+        - Operability
+
+    item:
+      action: Disable package management systems during migrations
+      target: Package management system
+      goal: Prevent systems from affecting other systems unexpectedly
+
+      action-type:
+        - evo / alter # upgrade
+      target-type:
+        - Other
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - prevent

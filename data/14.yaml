@@ -1,0 +1,335 @@
+#
+# 14.yaml | GitHub
+# https://blog.github.com/2018-10-21-october21-incident-report/
+#
+# # URL of incident report
+# https://github.blog/2018-10-30-oct21-post-incident-analysis/
+#
+# Description: "At 22:52 UTC on October 21, routine maintenance work to replace failing 100G optical equipment resulted in the loss of connectivity between our US East Coast network hub and our primary US East Coast data center. Connectivity between these locations was restored in 43 seconds, but this brief outage triggered a chain of events that led to 24 hours and 11 minutes of service degradation." Most of that time involved restoring the database clusters to a supported topology.
+#
+# Researcher Notes:
+
+IR-14:
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Concentric-Circles / Constraining clusters:
+      - AI-2 fix locally (configuration that allowed bad topology)
+      - AI-4 eliminate class (no more cross data center clusters)
+
+    - Automating / Testing more failure scenarios (unpredictable ones):
+      - AI-5 chaos engineering practice 
+      - AI-6 chaos engineering tooling
+
+  memos:
+    - Unexpected, automated, emergent behavior: Core to this incident was an automated support system (cluster manager) whose job is to "handle automated failover". They found that it was possible for it to "implement topologies that applications are unable to support". The automation system correctly followed its configured rules, but left many clusters "in an unexpected state". Configuration driven behavior can be hard to reason about, and the AIs are to fix the configuration (AI-2), change the architecture of the underlying system to make such topologies impossible (AI-4), and try to automatically validate other (as of yet, unanticipated) failure scenarios not considered (AI-5, AI-6).
+
+    # We will take a more proactive stance in testing our assumptions ... As we continue to grow, it becomes increasingly difficult to capture and transfer the historical context of trade-offs and decisions made to newer generations of Hubbers.
+    - Tradeoffs: Historical context of
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # we made several public estimates on time to repair based on the rate of processing of the backlog of data. In retrospect, our estimates did not factor in all variables. We are sorry for the confusion this caused and will strive to provide more accurate information in the future. [Earlier ...] In reality, the time required for replication to catch up had adhered to a power decay function instead of a linear trajectory [... at one point ...] replication delays were increasing instead of decreasing.
+    
+    motivation:
+      experience: They made several optimistic TTR estimates, which misled customers
+      lifecycle:
+        - Response / Customer communication (TTR)
+      tags:
+        - customer communication (misleading)
+        - human factors (mistake, poor estimates for TTR)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Consider more variables when estimating TTR
+      target: Customer communication procedures for TTR
+      goal: Set more accurate TTR expectations during incident
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Customer communication (for IR)
+      intended-effect:
+        - Interaction Capability / User assistance (accuracy)
+      temporal: new
+      google-ai:
+        - mitigate future #/ improve incident management
+      coding:
+        - Informing operation (communicating TTR)
+      
+
+
+    other:
+      modification: Formalize ttr estimation process 
+      modification2: Fix a defect in the estimation process
+    
+    themes:
+      - wishy-washy ("strive")
+
+    memos:
+      - Similar: Impact, Want to have a better strategy so the same issue (providing a bad TTR, see the event) doesn't happen in the future
+      - Commitment: (strive to) i.e. no plan
+
+  AI-2:
+    # Connectivity between [data centers] was restored in 43 seconds, but this brief outage triggered a chain of events that led to 24 hours and 11 minutes of service degradation. [Primarily due to primaries (and then of course replicas)] in west coast instead of east coast data center. [Because] It’s possible for Orchestrator to implement topologies that applications are unable to support, therefore care must be taken to align Orchestrator’s configuration with application-level expectations. [So they plan to] adjust the configuration of Orchestrator to prevent the promotion of database primaries across regional boundaries. Orchestrator’s actions behaved as configured, despite our application tier being unable to support this topology change [...] cross-country latency was a major contributing factor during this incident. This was emergent behavior of the system [...]
+
+    motivation:
+      experience: Due to the network disconnectivity, the orchestration software caused a fallback to unsupported topology (cross DC), which caused increased latency that the application tier was unable to support
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (network disconnection)
+        - limit hit (latency)
+        - slow operation (from network latency)
+      iso:
+        - Fault tolerance
+        - Time behavior
+
+    item:
+      action: Adjust configuration defining allowed topologies
+      target: Database cluster manager (Orchestrator)
+      goal: Prevent promotion of cross-region DB primaries
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: architecture
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Operational constraint (to prevent emergent behavior)
+      temporal: new
+      google-ai:
+        - prevent #/ initial failure
+      coding:
+        - Keep within range (latency)
+        - Restricting operation (fewer topology options)
+
+    other:
+      modification: Fix latent configuration defect # emergent behavior
+      activity: adjust configuration
+      level: component (but system implications)
+
+    themes:
+      - automation / fix failover failure (cross region)
+      - configuration driven behavior
+
+    memos:
+      - Alt could be to change applications to tolerate more topologies; planning what to change is a RE activity and requires deciding between alternatives
+      - AI simple but KEY to a MAJOR outage (interesting contrast)
+      - AI motivated by (previously) unexpected behavior (of cluster)
+      - Similar: Symptom, Any incidents that would follow from this topology
+
+  AI-3:
+    # While many portions of GitHub were available throughout the incident, we were only able to set our status to green, yellow, and red [which] doesn’t give [customers] an accurate picture of what is working and what is not
+
+    motivation:
+      experience: The status information displayed was correct but did not give customers an accurate picture of what was working and what is not (granularity)
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - granularity (insufficient detail)
+        - customer communication (insufficient detail)
+      iso:
+        - Self-descriptiveness
+
+    # We have accelerated our migration to a new status reporting mechanism that will provide a richer forum for us to talk about active incidents in crisper and clearer language. [...] in the future will be displaying the different components of the platform so you know the status of each service.
+
+    item:
+      action: Accelerate on going migration (replacing mechanism)
+      target: Status page (status reporting mechanism)
+      goal: Communicate per service status during incidents
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (status page granularity)
+      temporal: previously started (accelerated)
+      google-ai:
+        - mitigate future #/ incident response (communication)
+      coding:
+        - Informing operation (for customers?)
+
+    other:
+      modification: Replace status reporting component
+      activity: accelerate, migrate
+      level: component
+
+    themes:
+      - prioritize ("accelerate")
+
+    memos:
+      - Similar: Impact, Better communication when (again) system in mixed state
+
+  AI-4:
+    # [...] In the weeks prior to this incident, we had started a company-wide engineering initiative to support serving GitHub traffic from multiple data centers in an active/active/active design [...] The goal of that work is to tolerate the full failure of a single data center failure without user impact. This is a major effort and will take some time [...] This incident has added urgency to the initiative. [...] Applications running in the East Coast that depend on writing information to a West Coast MySQL cluster are currently unable to cope with the additional latency introduced by a cross-country round trip for the majority of their database calls
+
+    motivation:
+      experience: A maintenance action to replace equipment led to a 43s network partition between DCs, and the system cannot yet tolerate a full failure of a single data center without user impact (downtime was 12 hours)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (to replace failing hardware)
+        - infrastructure disruption (maintenance action led to network partition and extremely long down time)
+        - extended downtime (could not recover quickly despite connection being re-established in 43 seconds due to topology)
+      iso:
+        - Availability
+        - Fault tolerance
+
+    item:
+      action: Rearchitect as "well-connected sites in a geography"
+      target: Application & dependencies execution architecture (multiple DC)
+      goal: Tolerate single data center failure with no user impact
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Execution structure
+      sts:
+        - Tech / Infra
+        - Tech / Core
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Fault tolerance (to hard dep failure)
+      temporal: previously started ("added urgency")
+      google-ai:
+        - prevent
+      coding:
+        - Localize failure (at datacenter level)
+
+    other:
+      modification: Remodel execution architecture (multiple data centers)
+      activity: accelerate
+      level: system
+
+    themes:
+      - prioritize
+      - major initiative
+
+    memos:
+      - Similar: Locality, Company wide effort with broad applicability
+      - Major AI only considered because it was already planned?
+      - Single-Point-Of-Failure: Remove data center failure as a single point of failure
+
+  # We will take a more proactive stance in testing our assumptions ... As we continue to grow, it becomes increasingly difficult to capture and transfer the historical context of trade-offs and decisions made to newer generations of Hubbers.
+
+  # excluded: Unclear what is being proposed
+
+  AI-5:
+    # [Discussion of role of chaos based testing due to complexity...] To bolster those efforts, we will also begin a systemic practice of validating failure scenarios before they have a chance to affect you. This work will involve future investment in fault injection and chaos engineering tooling at GitHub.
+
+    motivation:
+      experience: The failure scenario included an unexpected promotion of cross-country primary, which led to high latency, and would be hard to test for
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (maintenance action led to network partition and extremely long down time)
+        - unexpected primary promotion
+        - tests (existing tests cannot reveal this failure mode)
+        - complexity
+      iso:
+        - Risk identification
+
+    item:
+      action: Add systemic (chaos) practice for validating failure scenarios
+      target: Testing practices (system level)
+      goal: Validate failure scenarios before they cause use impact
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Process / Testing practices
+      intended-effect:
+        - Reliability / Faultlessness (catch before)
+      temporal: new
+      google-ai:
+        - prevent #/ validate more scenarios (hard to predict ones)
+      coding:
+        - Extend to scenario (more failure scenarios)
+        - Prevent user impact
+
+    other:
+      modification: Test under more failure scenarios (chaos)
+      activity: invest
+      level: system (test systems)
+
+    themes:
+      - class of problem through testing
+      - automation / fault injection
+
+    memos:
+      # We have learned that tighter operational controls or improved response times are insufficient safeguards for site reliability within a system of services as complicated as ours.
+
+      - Find other failure scenarios "before they have a chance to affect you"
+      - Similar: Anticipation, Validate other (unexpected/emergent) scenarios
+      - Risk: Safeguards insufficient
+
+      # To bolster those efforts [..]
+      - Defense-In-Depth: Additional effort (on top of the listed PAs and lessons learned) will be to introduce new testing practice., Two actions to address similar (AI-5, AI-6)
+
+  AI-6:
+    # [Discussion of role of chaos based testing due to complexity...] To bolster those efforts, we will also begin a systemic practice of validating failure scenarios before they have a chance to affect you. This work will involve future investment in fault injection and chaos engineering tooling at GitHub.
+
+    motivation:
+      experience: The failure scenario included an unexpected promotion of cross-country primary, which led to high latency, and would be hard to test for
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (maintenance action led to network partition and extremely long down time)
+        - unexpected primary promotion
+        - tests (existing tests cannot reveal this failure mode)
+        - complexity
+      iso:
+        - Risk identification
+
+    item:
+      action: Add fault injection and chaos engineering tooling
+      target: Testing tools (system level)
+      goal: Validate failure scenarios before they cause use impact
+
+      action-type:
+        - evo / add
+      target-type:
+        - Tests / Tooling
+      sts:
+        - Tech / Support 
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent #/ validate more scenarios (hard to predict ones)
+      coding:
+        - Extend to scenario (more failure scenarios)
+        - Prevent user impact
+
+    other:
+      modification: Test under more failure scenarios (chaos)
+      activity: invest in tools
+      level: system (test systems)
+
+    themes:
+      - class of problem
+      - automation / fault injection
+
+    memos:
+      - Similar: Anticipation, Validate other (unexpected/emergent) scenarios
+      - In some cases tooling (AI-6) AND process (AI-5) changes are needed
+      - Defense-In-Depth: Two actions to address similar (AI-5, AI-6)

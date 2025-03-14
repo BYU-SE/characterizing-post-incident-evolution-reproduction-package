@@ -1,0 +1,222 @@
+#
+# 2.yaml | Reddit
+# https://www.reddit.com/r/RedditEng/comments/o4y4dq/rwallstreetbets_incident_anthology_reddits_open/
+#
+# This report documents 2 incidents (both causing elevated error rates for users):
+#
+# (1) Subreddit Crowd Control. A subreddit feature (crowd control) was turned up for a busy (from posting and commenting) subreddit (wallstreetbets) and overloaded internal systems and causing database contention.
+#
+# (2) The Modmail Flood. A busy subreddit (wallstreetbets) went private increasing the load on the SSO and modmail features (from users wanting to contact moderators) over-saturating the underlying database and cascading to systems that shared that database.
+#
+# Researcher Notes:
+#
+
+IR-2:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Software-Life-Cycle / Introduce resilience during engineering:  # Address as far "left" as we can
+      # consistent "resilience in the face of inevitability"
+      - AI-1 design process
+      - AI-2 implementation approach
+      - AI-3 monitoring in production
+
+  memos:
+
+    # While we can probably never imagine all the ways redditors push our systems, the responses that played out during r/WallStreetBets highlighted some focus areas for resilience in the face of inevitability. [COMPLEX SYSTEMS]
+    - Uncertainty and complexity: Limits of anticipating all possibilities is a deep and far-reaching idea. Unpredictability & complexity is core to some incident experiences, and AIs may not easily address those. In this case no AIs attempt to prevent future similar incidents, instead AIs are about ensuring "resilience in the face of inevitability" based on what they learned from responding to these two failures. 
+
+    - Response: All AIs are mitigating (options for responders). They want to be able to use the same techniques but more reliably and consistently, not relying on ad hoc processes and luck. "We've realized more clearly the value of ..." and want to reduce variation. This is about the value of consistently and having things ready before incidents occur.
+
+    # "One major pain point that we identified in reviewing the load-shedding parts of each response was that there wasn’t a standard for the overall process."
+    - Pain-Point: Treat as source of AIs
+    - Best-Practice: Moving towards best practices/standards
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # From "the aftermath" section
+  #
+  AI-1:
+    # [The feature flip load-shedding was nonstandard but important...] Through these incidents, we’ve realized more clearly the value of feature flagging and identified several areas to reinforce the methodology - asking about feature switches early on in the design process, [.. AI-2, AI-3 ..]
+
+    motivation:
+      experience: Responders disabled features in an ad-hoc fashion (temporary measures to disable, manually identifying lower importance features)
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - responding to load
+        - manual operation (managing load)
+        - manual action required to recover (feature flip)
+      iso:
+        - Operability
+        - Recoverability
+
+    item:
+      action: Include (more consistently) feature switches in early stages
+      target: Development practices (design)
+      goal: Encourage feature flags and feature-based load-shedding
+
+      action-type:
+        - evo / alter # existing design process
+      target-type:
+        - SDLC / Development
+      sts:
+        - Process / Development methodology
+      intended-effect:
+        - Interaction Capability / Operability (consistency and to be used during incidents)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine
+        - Allow recovery
+
+    other:
+      modification: Formalize design process (consistency)
+
+      # "realized more clearly the value" during incidents
+    themes:
+      - responders (options for response)
+      - reduce variation
+
+    memos:
+      # we’ve realized more clearly the value of
+      - Went well but: Was not consistent so need "to reinforce the methodology"
+      - Prioritization: Changing mindset of how important responder tool is
+
+      # and identified several areas to reinforce the methodology
+      - Best-Practice: Nonstandard, but useful and may become a best practice
+
+  AI-2:
+    # [The feature flip load-shedding was nonstandard but important...] Through these incidents, we’ve realized more clearly the value of feature flagging and identified several areas to reinforce the methodology - [.. AI-1 ..] making feature flags easier to code into systems [.. AI-2 ..]
+
+    motivation:
+      experience: Responders disabled features in an ad-hoc fashion (temporary measures to disable, manually identifying lower importance features)
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - responding to load
+        - manual operation (managing load)
+        - manual action required to recover (feature flip)
+      iso:
+        - Operability
+        - Recoverability
+
+    item:
+      action: Make feature flags easier to code into systems
+      target: Development practices (VAGUE)
+      goal: More easily add feature flags to support feature-based load-shedding
+
+      action-type:
+        - evo / alter
+      target-type:
+        - SDLC / Development # Or just development itself somehow
+      sts:
+        - Process / Development methodology
+      intended-effect:
+        - Interaction Capability / Operability (new feature)
+        - Maintainability / Modifiability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine
+        - Allow recovery
+
+    other:
+      modification: Restructure system (to support feature flags)
+
+    themes:
+      - responders (options for response)
+      - reduce variation
+
+  AI-3:
+    # [The feature flip load-shedding was nonstandard but important...] Through these incidents, we’ve realized more clearly the value of feature flagging and identified several areas to reinforce the methodology - [.. AI-1, AI-2 ..] and adding observability integrations to make identifying and auditing for feature flag flips easier in our production environments.
+
+    motivation:
+      experience: Responders disabled features in an ad-hoc fashion (temporary measures to disable, manually identifying lower importance features)
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - responding to load
+        - manual operation (managing load)
+        - manual action required to recover (feature flip)
+      iso:
+        - Operability
+        - Recoverability
+
+    item:
+      action: Add monitoring and auditing for feature flags
+      target: Monitoring for application feature (observability integrations)
+      goal: Support feature flag observability
+
+      action-type:
+        - evo / add # current and future probably
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine
+        - Allow recovery
+
+    other:
+      modification: Restructure (integrate) components
+      level: component interactions
+
+    themes:
+      - responders (options for response)
+      - reduce variation
+
+  AI-4:
+    # [Moderator actions triggered both incidents and communication was necessary for triage and mitigation] Correlating subreddit behaviors to site impact proved critical in debugging both of these incidents, and the Community team played an important role, providing insights into user behavior and communication channels to moderators. None of Community’s key contributions were kicked off by documented processes - they happened because of organic relationships and internal connections built between individual responders from engineering and Community teams. While we were grateful for the openness that allowed these relationships to thrive, we’ve also started working to deliberately ensure that they continue to develop as we scale.
+
+    motivation:
+      experience: Community team provided important insights into user behavior and communication channels to moderators in both incidents. 
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - responder aid (non-standardized)
+      iso:
+        - Analysability
+
+    item:
+      action: Formalize user relationship development and communication (VAGUE)
+      target: Customer communication and engagement processes
+      goal: Maintain user communication channel as company grows (VAGUE)
+
+      action-type:
+        - evo / alter # adhoc to formal
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Customer communication (for engagement)
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Informing operation 
+
+    other:
+      modification: Formalize community process
+
+    themes:
+      - responders (formalize what worked)
+
+    memos:
+      - When well but: Was adhoc (lucky) and could easily have not worked (formalize)

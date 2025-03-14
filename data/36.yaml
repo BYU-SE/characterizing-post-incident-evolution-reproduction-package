@@ -1,0 +1,70 @@
+#
+# 36.yaml | Deno
+# https://deno.com/blog/02-03-2021-outage-post-mortem
+#
+# Traffic to all parts of the Deno service (cdn, website, package manager file, etc) was blocked by Cloudflare, which had misidentified .ts files as media, and was likely triggered by an influx in traffic (9x regular traffic) after Deno posted release notes on Hacker News
+# 
+#
+# Researcher Notes:
+#
+
+IR-36:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    - Very blamey incident on Cloudflare
+
+    - No further action taken internally besides mitigating factors like moving to fly.io (how is that better than cloudflare?)
+
+    - No core changes needed: They just added a status page which doesn't do any prevention. They could have kept both infrastructure providers and added a fallback or something, but they chose to do nothing
+
+  ######################################
+  # AIs
+  ######################################
+
+  # Cloudflare has also assured us that a 16 hour gap between false detection and remediation is not acceptable, and that this will be an area of immediate focus for them.
+
+  # excluded: Reporting on a third party with only details that action will be taken, but not what specific actions.
+
+  AI-1:
+    # [Lots of things went down] As a result of this incident we have set up a public status page. This page shows the current status of deno.land/x, deno.land/std, cdn.deno.land, and api.deno.land. You can view it at https://status.deno.land/.
+
+    motivation:
+      experience: They did not have a public status page and could not communicate to customers
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (missing status page)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Set up a public status page for core services
+      target: Status page
+      goal: Allow customers to see the current status for all their services
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (status transparency)
+      temporal: new
+      google-ai:
+        - mitigate future #/ incident management (communication)
+
+    other:
+      modification: Add public status page component
+      level: component
+      activity: deploy
+
+    memos:
+      - No notes on why they didn't have a status page before or why they thought this incident was enough to push them that way.

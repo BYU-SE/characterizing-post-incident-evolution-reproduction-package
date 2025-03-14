@@ -1,0 +1,199 @@
+#
+# 19.yaml | Cloudflare
+# https://blog.cloudflare.com/cloudflare-dashboard-and-api-outage-on-april-15-2020/
+#
+# Disconnection of multiple, redundant fibre connections from one of two core data centers when technicians erroneously disconnected cables in a patch panel (switchboard) that provided all external connectivity to other data centers.
+#
+
+IR-19:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # - Design, Documentation and Process (something to think about?)
+    # - Prevent (x2) + Speed up recovery (just in case?)
+
+    - Maintenance safety / Prevent trigger in depth (human error):
+      - AI-1 remove SPoF (human actions then are safer)
+      - AI-2 add labels for clarity (prevent human error)
+      - AI-3 add negative instructions (prevent human error)
+
+  memos:
+    - AI-Section-Title: Section titled "Moving forward"
+
+    # We have identified several steps we can take to address the risk of these sorts of problems from recurring in the future, and we plan to start working on these matters immediately
+
+    - Risk: No guarantee but addressing the "RISK of ... recurring in the future"
+    - Improving-Understanding: Identifying steps to take in the future regarding risk that they were unaware of (or had discounted)
+    - Similar: Recurring in the future is a risk (so not just prevent but reduce risk)
+
+    # As part of planned maintenance at one of our core data centers, we instructed technicians to remove all the equipment in one of our cabinets.
+
+    - Evolution may be driven by better understanding of how context may evolve
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # As part of planned maintenance [..], we instructed technicians to remove all the equipment in one of our cabinets. That cabinet contained old inactive equipment [..] and had no active traffic or data [..]. The cabinet also contained a patch panel (switchboard of cables) providing all external connectivity to other Cloudflare data centers. Over the space of three minutes, the technician decommissioning our unused hardware also disconnected the cables in this patch panel. Design: While the external connectivity used diverse providers and led to diverse data centers, we had all the connections going through only one patch panel, creating a single physical point of failure. This should be spread out across multiple parts of our facility.
+
+    motivation:
+      experience: Technician disconnected network cables, which included an important switchboard of cables providing all the external connectivity for the data center
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (retire old hardware, accidentally pulled cable)
+        - infrastructure disruption (spof, maintenance action disconnected cables which were important)
+        - spof (missing redundancy)
+      iso:
+        - Fault tolerance
+        - Maintainability
+
+    item:
+      action: Spread out external connectivity across multiple parts of facility
+      target: Data center level physical networking
+      goal: Remove single point of failure to ensure connectivity
+
+      action-type:
+        - evo / add
+      target-type:
+        - Infrastructure / Network equipment
+      sts:
+        - Infrastructure / Data center networking infra design
+      intended-effect:
+        - Reliability / Fault tolerance (redundancy)
+      temporal: new
+      google-ai:
+        - prevent #/ eliminate single point of failure
+
+    other:
+      modification: Partition connections across multiple points (remove SPoF)
+      activity: design
+      level: system
+      timing: future
+      qa-category: keep within range (avoid scenario)
+
+    themes:
+      - redesign / removing spof
+
+    memos:
+      - Single-Point-Of-Failure: All connections go through only one patch panel
+
+  AI-2:
+    # Documentation: After the cables were removed from the patch panel, we lost valuable time identifying for data center technicians the critical cables providing external connectivity to be restored. We should take steps to ensure the various cables and panels are labeled for quick identification by anyone working to remediate the problem. This should expedite our ability to access the needed documentation.
+
+    motivation:
+      experience: Lost valuable time identifying cables for the technicians
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - human factors (communication, knowledge)
+        - delayed mitigation (lost time communicating to technician)
+        - missing documentation
+      iso:
+        - Recoverability
+
+    item:
+      action: Label cables and panels
+      target: Data center level physical networking (cables, etc)
+      goal: Quick identification of cables during remediation & likely maintenance
+
+      action-type:
+        - evo / add
+      target-type:
+        - Infrastructure / Network equipment
+      sts:
+        - Infrastructure / Data center networking infra documentation
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future #/ reduce time to resolve
+
+    other:
+      modification: Document (label) cables and panels
+      activity: label
+      level: component
+      timing: future
+      qa-category: recovering to safe range
+
+    themes:
+      - documenting / for remediation work
+
+  AI-3:
+    # Process: While sending our technicians instructions to retire hardware, we should call out clearly the cabling that should not be touched.
+
+    motivation:
+      experience: Technician disconnected network cables, which included an important switchboard of cables providing all the external connectivity for the data center
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (retire old hardware, accidentally pulled cable)
+        - infrastructure disruption (spof, maintenance action disconnected cables which were important)
+        - spof (missing redundancy)
+      iso:
+        - Fault tolerance
+        - Maintainability
+
+    item:
+      action: Add "what not to do" to technician instructions (retiring hardware)
+      target: Infrastructure maintenance procedures for data center technicians
+      goal: Prevent (human) errors during hardware maintenance
+
+      action-type:
+        - evo / add
+      target-type:
+        - Infrastructure / Network equipment (maintenance procedures of)
+        - Maintenance / TODO
+      sts:
+        - Process / Maintenance procedures (SOP)
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Formalize technician instruction process (what not to touch)
+      timing: use next time (next use of process)
+      qa-category: keep within range (SOP)
+
+    memos:
+      - SOP to include things NOT to do (cautions)
+
+  AI-4:
+    # We will be running a full internal post-mortem to ensure that the root causes of this incident are found and addressed.
+    motivation:
+      experience: UNCLEAR (a failure occurred?) # [TODO] This should be the entire experience as a whole
+
+    item:
+      action: Run a full internal post-mortem
+      target: UNCLEAR (the whole system)
+      goal: "Ensure that the root causes of this incident are found and addressed"
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Other
+      sts:
+        - UNCLEAR
+      temporal: new
+      google-ai:
+        - prevent
+        - investigate #/ improve understanding
+
+    other:
+      activity: full post-mortem
+      timing: plan then propose / xN
+      qa-category: UNCLEAR
+
+    memos:
+      # We will be running a full internal post-mortem to ensure that the root causes of this incident are found and addressed.
+      - Plan-To-Evolve: Partial post-mortem where not all RCAs are performed yet
+      - IR-Not-Complete: More PAs may be identified after further incident analysis

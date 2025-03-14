@@ -1,0 +1,162 @@
+#
+# 65.yaml | AWS
+# http://blog.travis-ci.com/2018-01-31-build-outage-postmortem
+# https://web.archive.org/web/20221225015813/blog.travis-ci.com/2018-01-31-build-outage-postmortem
+#
+# Researcher Notes:
+#
+
+IR-65:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+    
+  memos:
+
+    # While we have experienced excellent operational performance from the power configuration used in this facility, it is apparent that we need to enhance this particular design to prevent similar power sags from affecting our power delivery infrastructure.
+    - Similarity
+
+  
+    # We are never satisfied with operational performance that is anything less than perfect, and we will do everything we can to learn from this event and use it to drive improvement across our services. 
+    - Goal in mind for LFI
+   
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # Going Forward?
+  #
+
+  AI-1: 
+    #  We have applied queue policies in RabbitMQ to make it far less likely that a backlog of the kind that started this incident results in an extended queue publishing halt and the consequent cascading failure that we experienced here.
+
+    motivation:
+      experience: Worker process malfunctioned (grows in memory) causing queue processing to fall behind. Queue rapidly exhausted memory and started paging messages to disk, which caused the rest of the incident.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (worker process grew in memory)
+        - falling behind (backlog, queue processing fell behind)
+        - backlog
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Change queue policies
+      target: Message broker (RabbitMQ) configuration
+      goal: Prevent backlog, halts & cascading failures
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+
+  AI-2:
+    # We are also investigating how to make the various systems that rely on RabbitMQ more tolerant of queue halts and general cluster availability problems.
+
+    motivation:
+      experience: Queue processing halt caused issues in dependent services, even in other jobs on different queues
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - limit hit (worker process grew in memory)
+        - falling behind (backlog, queue processing fell behind)
+        - backlog
+        - propagation (effects to peers via shared resources for all queues)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Investigate options for fault tolerance
+      target: Job execution systems with deps on message broker (RabbitMQ)
+      goal: Ensure that queue halts and other availability issues do not effect other systems
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+
+  AI-3:
+    # We have identified a number of possible improvements to our monitoring systems which should make it easier for us to understand what is happening in our systems during cascading failure such as this one.
+
+    motivation:
+      experience: Responders did not understand what was going on, and instead treated other symptoms. Eventually they requested help from their vendor.
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - delayed diagnosis (hard to understand what is happening)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improvements for understanding cascading failures (VAGUE)
+      target: Monitoring for multiple systems (probably across cascade)
+      goal: Make it easier to understand what is happening during the incident
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support 
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-4:
+    # Even before this incident, we had been investigating new approaches to dispatching builds to our infrastructure that would allow us to reduce our reliance on a highly-available RabbitMQ cluster and improve the overall resilience of Travis CI. This work will receive renewed attention in light of what we learned in this incident.
+
+    motivation:
+      experience: Worker process malfunctioned (grows in memory) causing queue processing to fall behind. Queue rapidly exhausted memory and started paging messages to disk, which caused the rest of the incident.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (worker process grew in memory)
+        - falling behind (backlog, queue processing fell behind)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Investigate new approaches to dispatching builds (VAGUE)
+      target: Job execution system & dependency on message broker (RabbitMQ)
+      goal: Reduce reliance on queue and improve overall resilience of the service
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        # improve the overall resilience
+        - Reliability / Fault tolerance
+      temporal: previously started ("receive renewed attention")
+      google-ai:
+        - prevent

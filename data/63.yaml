@@ -1,0 +1,631 @@
+#
+# 63.yaml | Gitlab
+# https://about.gitlab.com/blog/2017/02/10/postmortem-of-database-outage-of-january-31/
+#
+# Researcher Notes:
+#
+
+IR-63:
+
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Responder options / Expanding responder options (something should work):
+      - AI-4 archive WALs so replay is possible
+      - AI-5 increase backup frequency
+      - AI-6 add additional backup type (disk)
+      - AI-7 improve staging data as an option
+      - AI-8 replication so at least 1 in good state
+      - AI-11, AI-12, AI-13 experiment with even more options
+
+    - Automating / Monitor and test the automation (trust):
+      - AI-2 monitor backup process (constantly)
+      - AI-9 test whole process (regularly and automatically)
+      - AI-10 document processes
+      - AI-14 assign responsibility to make it all work 
+
+    - Experimental improvements / Other possibly better alts:
+      - AI-11, AI-12, AI-13 experiment with even better alternatives
+    
+  memos:
+    # Losing production data is unacceptable. To ensure this does not happen again we're working on multiple improvements to our operations & recovery procedures for GitLab.com.
+    - The data loss (not the outage) is considered unacceptable
+    - AIs reflect this focus 
+    - Almost all AIs can be seen as about silently failing automation 
+  
+    # To recover GitLab.com we decided to use the LVM snapshot created 6 hours before the outage, as it was our only option to reduce data loss as much as possible (the alternative was to lose almost 24 hours of data). 
+    - Tradeoffs: Lose data partially versus completely
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # Improving recovery procedures
+  #
+
+  AI-1: 
+    # Update PS1 across all hosts to more clearly differentiate between hosts and environments (#1094)
+
+    motivation:
+      experience: Accidental deletion of data (Manual action) because wrong configuration for PS1 when script was run, when investigating ways to distribute increased load
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (general high load, engineer is looking for ways to reduce load on database by load balancing, runs script)
+        - data (deletion)
+        - manual action (deleting data was done on the wrong environment)
+        - human factors (run against wrong environment based on bad config)
+      iso:
+        - User error protection
+
+    item:
+      action: Update host primary prompts (PS1) to differentiate environments
+      target: Hosts shells (terminals)
+      goal: Avoid human errors (more clear)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Maintenance / TODO
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Update shell configuration
+      level: component
+
+  AI-2:
+    # Prometheus monitoring for backups (#1095)
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing and notifications about those failures were not reaching responders.
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+        - missing monitoring (no notifications reached responders due to DMARC issues)
+      iso:
+        - Recoverability
+        - Faultlessness
+        - Hazard warning
+
+    item:
+      action: Add monitoring for backup process (missing backups, etc)
+      target: Monitoring for database backups
+      goal: Ensure availability of backups for disaster recovery
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Monitor backup process
+      level: component
+      #context:
+      #  - Database backup process had failed silently
+      #  - Disaster recovery options unavailable
+
+
+  AI-3:
+    # Set PostgreSQL's max_connections to a sane value (#1096) [...] We should find historical data to see what our peaks are (besides the 800 I found in the last week), and figure out what a sane default is. We also need to find out why this was working for almost a year, only to fail now.
+
+    motivation:
+      experience: A configuration value was set to a very high value, and caused issues during mitigation relating to creating too many semaphores
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (backing up data delayed when postgres wouldn't start)
+      iso:
+        - Recoverability
+
+    item:
+      action: Investigate and correct max connections configuration 
+      target: Database configuration
+      goal: Ensure database server can (re) start
+
+      action-type:
+        - formative / investigative # historical data
+        - evo / alter
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Tech / Core 
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future # not sure
+
+    other:
+      modification: Tune (reduce) max cons configuration 
+      activity: investigate, tune
+      level: component
+      #context:
+      #  - Existing (too high) database max_cons setting prevented restart
+
+    
+  AI-4:
+    # Investigate Point in time recovery & continuous archiving for PostgreSQL (#1097) [...] We're also looking into ways to build better recovery procedures for the entire [...] infrastructure
+
+    motivation:
+      experience: Recovery snapshot used was 6 hours old
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - data (deleted, loss)
+        - backups (not working)
+      iso:
+        - Recoverability
+
+    item:
+      action: Introduce new disaster recovery procedures and tools
+      target: Database recovery procedures
+      goal: More efficient disaster recovery 
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Process / Disaster database recovery
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Introduce archiving for WALs, etc
+      activity: investigate
+      level: system
+
+    
+  AI-5:
+    # Hourly LVM snapshots of the production databases (#1098)
+
+    motivation:
+      experience: Recovery snapshot used was 6 hours old
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - data (deleted, loss)
+        - backups (not working)
+      iso:
+        - Recoverability
+
+    item:
+      action: More frequent (file system level) backup
+      target: Database backup processes (snapshots)
+      goal: Database disaster recovery (quicker option)
+
+      action-type:
+        - evo / alter
+      target-type:
+         - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Process / Disaster database recovery
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Increase backup frequency (to hourly)
+      level: component
+      context:
+        - Disaster recovery options were limited (backups)
+        - Data loss
+
+    
+  AI-6:
+    # Azure disk snapshots of production databases (#1099) [...] During today's outage it was revealed that Azure disk snapshots are disabled for our production databases. These should be enabled and run, if possible, at least once per hour.
+
+    motivation:
+      experience: Recovery snapshot used was 6 hours old
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - data (deleted, loss)
+        - backups (not working)
+      iso:
+        - Recoverability
+
+    item:
+      action: Enable (disk level) database snapshots
+      target: Database backup infrastructure (disk based snapshots)
+      goal: Add disaster recovery redundancy
+
+      action-type:
+        - evo / add
+      target-type:
+         - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Process / Disaster database recovery
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Enable and schedule backups (start using regularly)
+      level: component
+
+    memos:
+      - The opportunity of novelty.
+
+    
+  AI-7:
+    # Move staging to the [Azure Resource Manager] environment (#1100) [...] This ensures we have faster disks, making it easier to restore production from staging data. 
+
+    motivation:
+      experience: Backup took a long time since it was in a different region
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - delayed mitigation (backup taking a long time due to data transfer between regions)
+        - slow operation (mitigation, restore process)
+      iso:
+        - Recoverability 
+
+    item:
+      action: Move staging environment
+      target: Database backup infrastructure (staging data)
+      goal: Make disaster recovery option more efficient
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Infrastructure / Environment
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Move staging environment (closer to prod)
+      level: component
+
+    
+  AI-8:
+    # Recover production replica(s) (#1101) [...] Our production replica db2.cluster.gitlab.com is currently offline/not working, so we need to set it up again. Ideally we also set up another replica so we at least have 2, instead of 1
+
+    motivation:
+      experience: Data loss occurred during incident and production replica is currently not working
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deleted, loss)
+        - replicas currently offline
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Fix database replication (off line atm)
+      target: Database replication (replica offline atm)
+      goal: Restore database redundancy
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate this
+        - repair
+
+    other:
+      modification: Setup database replica
+      level: component
+
+    memos:
+      - Cleaning up the mess: Incident response did not attempt to fix the replica (which "started to lag behind"). But to mitigate future incidents they need the replica restored.
+
+    
+  AI-9:
+    # Automated testing of recovering PostgreSQL database backups (#1102)
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing and notifications about those failures were not reaching responders.
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+        - missing monitoring (no notifications reached responders due to DMARC issues)
+      iso:
+        - Recoverability
+        - Faultlessness
+        - Hazard warning
+
+    item:
+      action: Add automated test for database recovery 
+      target: Testing practices for database recovery
+      goal: Prevent data loss (and automate process)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Regularly test recovery (automated) 
+      level: component
+
+    #context:
+    #  - Automated testing of recovering PostgreSQL database backups
+
+    
+  AI-10:
+    # Improve PostgreSQL replication documentation/runbooks (#1103) [...] Our guides need to state ...
+
+    motivation:
+      experience: Backup procedures were insufficient
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action (performed during recovery such as setting up replication, performing failover)
+        - human factors (training, knowledge)
+        - insufficient procedures
+      iso:
+        - Recoverability
+
+    item:
+      action: Many additional 'explaining key database operation' tasks
+      target: Database documentation and runbooks
+      goal: Improve database related operation tasks (during incident)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Clustering and replication # TODO: Remove?
+        - Maintenance / TODO # runbooks
+      target-sts: process
+      target-sys: element
+      sts:
+        - Process / Maintenance procedures / Runbooks
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Document operation tasks
+      level: component
+
+    
+  AI-11:
+    # Investigate pgbarman for creating PostgreSQL backups (#1105)
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+      iso:
+        - Recoverability
+        - Faultlessness
+
+    item:
+      action: Considering alternative disaster recovery tools
+      target: Database backup tooling and process (new possibility)
+      goal: Disaster recovery 
+
+      action-type:
+        - formative / discover options # investigate options
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      level: component
+      activity: investigate
+
+    
+  AI-12:
+    # Investigate using WAL-E as a means of Database Backup and Realtime Replication (#494)
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+      iso:
+        - Recoverability
+        - Faultlessness
+
+    item:
+      action: Considering alternative disaster recovery tools
+      target: Database backup tooling and process (new possibility)
+      goal: Disaster recovery 
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      level: component
+      activity: investigate
+    
+    themes:
+      - tradeoffs (alternative tools)
+
+    
+  AI-13:
+    # Build Streaming Database Restore [... goal is] we have streaming backup, and we use this streaming backup to restore the database on a daily basis, effectively removing the pain of performing a restoration as it will become a standard procedure.
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+      iso:
+        - Recoverability
+        - Faultlessness
+
+    item:
+      action: Develop reliable streaming backup and restore
+      target: Database recovery process and tools (new possibility)
+      goal: Make restores a regular practice (and so more reliable)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Process / Disaster database recovery
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Build backup and restore system
+      level: system
+
+    memos:
+      - This builds on the formative actions above
+
+    
+  AI-14:
+    # Assign an owner for data durability
+
+    motivation:
+      experience: After accidental data deletion, engineers found that some backups had been failing. Some data was lost permanently
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deletion)
+        - backups (not working)
+      iso:
+        - Recoverability
+        - Faultlessness
+
+    item:
+      action: Assign owner for neglected process and tooling
+      target: Database durability ownership
+      goal: Ensure someone is responsible for data durability
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: architecture
+      sts:
+        - People / Organization
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Assign responsibility
+      level: component
+
+
+  AI-15:
+    # We are also working on setting up multiple secondaries and balancing the load amongst these hosts. 
+
+    motivation:
+      experience: Primary DB was experiencing increased load which was why they were trying out a way to load balance queries
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (general high load, engineer is looking for ways to reduce load on database by load balancing, runs script)
+      iso:
+        - Fault tolerance
+        - Capacity
+
+    item:
+      action: Add secondary databases and load balancing
+      target: Database cluster design (secondaries, pooling, ...)
+      goal: UNCLEAR
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - UNCLEAR
+
+    other:
+      modification: Add secondaries and supporting infrastructure
+      level: system

@@ -1,0 +1,261 @@
+#
+# 33.yaml | Jeli.io
+# https://www.jeli.io/blog/how-we-got-here
+# https://web.archive.org/web/20231201001836/https://www.jeli.io/blog/how-we-got-here
+#
+# A part of their application fails and is reported to them by a customer. They revert to an earlier version which does not have the problem, spend time on fixing confusing queries, tests, etc. and then deploy a fix
+#
+# Researcher Notes:
+#
+
+IR-33:
+
+  extractedBy: Matt
+  reviewedBy: js # sort of reviewed (I couldn't find IR)
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # None of these were particularly severe during the incident, but they reveal some surprises that may cause problems in future incidents:
+    - Interesting that they call out stuff for future incidents
+
+    # Key Takeaways/ Themes. Above all, this incident went smoothly; everyone was in the right place to promptly and effectively respond and communicate. The problem was resolved quickly, responders learned more about their systems and how to collaborate with each other, and the impacted users were notified and satisfied with the remediation and communication updates.
+    - LL-Section-Title: Section called "Key Takeaways/ Themes"
+
+    - AI-Section-Title: Section called "Follow-Up Items"
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # A customer noticed there was a problem and posted about the issue in a shared channel. There was a slight delay in understanding the impact of this event, and ambiguity amongst responders on the urgency of the event, as well as how to start an incident from the Solutions Engineers. Process. Set up a streamlined communication process with our users as we onboard new Solutions Engineers (Solutions team)
+
+    motivation:
+      experience: A customer noticed there was a problem and posted about it on a shared slack channel before Jeli noticed, and there was confusion and delay in understanding the impact of the event
+      lifecycle:
+        - Response / Detection
+      tags:
+        - customer communication (reported issue)
+        - delayed detection (customer had to report it)
+        - delayed triage (in understanding impact, ambiguity on the urgency of the event)
+        - human factors (delay in understanding, ambiguity about urgency, unsure how to start an incident)
+      iso:
+        - Recoverability
+
+    item:
+      action: Set up a streamlined communication process with users
+      target: Customer communication process
+      goal: Enable customer communication of incidents
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Customer communication
+      intended-effect:
+        - Interaction Capability / User assistance (customer support)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Formalize (streamline) communication process
+      activity: onboard
+
+    memos:
+      - Assigned to a particular team
+
+  AI-2:
+    # [During the incident the] Incident Bot status updates allowed others to follow along without disrupting the core incident channel. [We will] Make changes to our Incident Response bot so it better aligns with internal and external communication expectations (i.e. timing of updates, roles, publication channels) (Engineering)
+
+    motivation:
+      experience: Relatively new incident bot handled and communicated during the incident
+      lifecycle:
+        - Response / Customer communication (and more)
+      tags:
+        - human factors (coordination, needs)
+        - unrefined incident handling (new tool)
+        - automation (incident handling bot)
+      iso:
+        - Recoverability
+
+    item:
+      action: Make changes (VAGUE)
+      target: Incident response bot
+      goal: Align bot with communication expectations
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Incident response tools and process / Communication / Internal
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (communication expectations)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: VAGUE
+      level: component
+
+    themes:
+      - automation (bot)
+
+    memos:
+      - Assigned to a particular team
+
+  AI-3:
+    # At Jeli, engineering is split up into a Backend and a Frontend team; our on-call schedule only pages Backend engineers since they are in charge of our infrastructure and up until the move to Vercel, they were best positioned to quickly diagnose issues and rule out anything other than Frontend code. Process. Reassess our on-call rotation to include Frontend engineers post-Vercel move. (Engineering)
+
+    motivation:
+      experience: System knowledge spread across engineers
+      lifecycle:
+        - Response / Triage
+      tags:
+        - on-call
+        - delayed RCA (on-call engineers did not include someone with needed expertise)
+        - human factors (knowledge needed during incident, on-call)
+      iso:
+        - Recoverability
+
+    item:
+      action: Reassess the on-call rotation to include engineers with front-end experience
+      target: Alarming and paging (on-call staff rotation)
+      goal: Ensure experts of new system are available during off-hour incidents
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Process / Incident response / On-call staff rotation
+      intended-effect:
+        - Interaction Capability / Operability (timely expertise around the clock)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Formalize (adapt) on-call rotation (with FE engineers)
+      activity: reassess
+
+    memos:
+      - Assigned to a particular team
+
+  AI-4:
+    # Follow up training as well as including training within onboarding for Software Engineers and Solutions Engineers particularly for feature flagging (Engineering and Solutions)
+
+    motivation:
+      experience: A code change was believed to be behind a feature flag actually impacted the entire production environment, and assumptions were made around what is behind the feature flag and what isn't
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - human factors (assumptions, mistake)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Perform follow up training 
+      target: Maintenance practices (training for existing engineers)
+      goal: Ensure experts are familiar with features needed during incident response
+
+      action-type:
+        - evo / add
+      target-type:
+        - Maintenance / TODO
+      sts:
+        - People / Training
+      intended-effect:
+        - Maintainability / Modifiability (expertise & training)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Train existing responders on tooling (feature flagging)
+      activity: train, creating training material
+
+
+  AI-5:
+    # Follow up training as well as including training within onboarding for Software Engineers and Solutions Engineers particularly for feature flagging (Engineering and Solutions)
+
+    motivation:
+      experience: A code change was believed to be behind a feature flag actually impacted the entire production environment, and assumptions were made around what is behind the feature flag and what isn't
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - human factors (assumptions, mistake)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Add training that was missing for new and existing engineers
+      target: Maintenance practices (training for new engineers)
+      goal: Ensure experts are familiar with features needed during incident response
+
+      action-type:
+        - evo / add
+      target-type:
+        - Maintenance / TODO
+      sts:
+        - People / Training
+      intended-effect:
+        - Maintainability / Modifiability (expertise with systems & training)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Train onboarding engineers (feature flagging)
+      activity: train, creating training material
+
+    memos:
+      - Assigned to a particular team
+      - Just hoping people can be more careful (not adding other safety?)
+
+  AI-6:
+    # Identifying trigger – our proxy for ingesting Frontend events into Honeycomb had been broken for over a month, this was due to an expected field not being set by our Frontend code for some requests, resulting in events being dropped rather than forwarded to Honeycomb. Engineering knew of this but fixing it kept getting deprioritized – this was fixed soon after the incident took place. Observability data. Engineering has already addressed the failing proxy for ingesting Frontend events into Honeycomb. (Engineering)
+
+    motivation:
+      experience: A latent unfixed defect meant that diagnosing was hard since missing information (and lots of red herrings in this case)
+      lifecycle:
+        - Response / Diagnosis
+        #- Pre-incident # [TODO] Defect existed from before and complicated diagnosis?
+      tags:
+        - delayed RCA (missing logs)
+        - defect (events didn't get ingested, latent, deprioritized for a while)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix defect causing dropped events
+      target: Front-end ingestion service & ingestion proxy
+      goal: Fix bug that caused events to be dropped, which may have contributed to the issue, and caused problems during investigation
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Maintainability / Analysability
+        - Reliability / Faultlessness
+      temporal: backlog
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix known latent defect (dropping events)
+      activity: prioritize # "kept getting deprioritized"
+      level: component
+
+    memos:
+      - The incident caused this backlog item to be reprioritized and fixed soon after the incident took place (it was complete at the time the IR was written)
+      - Prioritization: Reprioritize, off backlog

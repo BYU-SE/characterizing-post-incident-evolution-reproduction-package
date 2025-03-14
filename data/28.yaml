@@ -1,0 +1,120 @@
+#
+# 28.yaml | Twilio
+# https://www.twilio.com/en-us/blog/billing-incident-post-mortem-breakdown-analysis-and-root-cause-html
+#
+# An incident with its billing system affected 1.4% of customers when it did not update customer balances, recharged customers multiple times, or suspended accounts as a result of recharging deactivated credit cards. This occurred when a redis cluster experienced a network connectivity loss, and resynchronizing the secondaries overloaded the primary.
+#
+#
+# Researcher Notes:
+#
+
+IR-28:
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # Although we’ve shared how the incident unfolded, and the impact on our customers, we’d like to detail the root cause, how we fixed it, and what we’re doing to ensure this doesn’t happen in the future.
+    - Similar: Likely double billing related
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Observing extreme load on the host, the redis process on redis-master was misdiagnosed as requiring a restart to recover. This caused redis-master to read an incorrect configuration file, which in turn caused Redis to attempt to recover from a non-existent AOF file, instead of the binary snapshot. As a result of that failed recovery, redis-master dropped all balance data. In addition to forcing recovery from a non-existent AOF, an incorrect configuration also caused redis-master to boot as a slave of itself, putting it in read-only mode and preventing the billing system from updating account balances. [We will...] As a further preventative measure, Redis restarts on redis-master are disabled and future redis-master recoveries will be accomplished by pivoting a slave.
+
+    motivation:
+      experience: Restarting the redis master was unnecessary (misdiagnosis), caused it to read an incorrect configuration file, dropped all balance data, and caused it to boot as a secondary as itself in read-only mode.
+      lifecycle:
+        - Response / Diagnosis
+        - Response / Mitigation
+        - Failure / Downstream Effects
+      tags:
+        - human factors (mistake, misdiagnosis)
+        - restarting failed process
+      iso:
+        - Recoverability
+        - Operability
+
+    item:
+      action: Disable restarts on primary nodes
+      target: Redis configuration & recovery process
+      goal: Ensure recovery is performed in a more safe manner
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Incident response / Procedures
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-2:
+    # The simultaneous loss of in-flight balance data and the ability to update balances also exposed a critical flaw in our auto-recharge system. It failed dangerously, exposing customer accounts to incorrect charges and suspensions. We are now introducing robust fail-safes, so that if billing balances don’t exist or cannot be written, the system will not suspend accounts or charge credit cards.
+
+    motivation:
+      experience: Lost in-flight balance data and functionality to update balances, and dangerous failure
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - data loss (in-flight data)
+        - functionality loss (to update balance)
+      iso:
+        - Fail safe
+        - Fault tolerance
+
+    item:
+      action: Add fail-safes for missing-balance case
+      target: Billing (auto-recharge) system logic
+      goal: Ensure that customers accounts will not be suspended and customers will not be charged if balances do not exist
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Fail safe
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-3:
+    # The billing system maintains independent double-bookkeeping for all balance data in a separate relational datastore. Following the shutdown of the billing system, this independent record was used to restore the account balances lost in the failed recovery of the redis-master. Once these balances were properly restored, the billing system was turned on at 11:58 AM PDT. Observing further anomalous behavior, the billing system was shut back down and engineering work focused on restoring service and refunding customers accounts. [We will...] Finally, we will be updating the billing system to validate against our double-bookkeeping databases in real-time.
+
+    motivation:
+      experience: The billing system used double-bookkeeping but did not validate against them, and so still had issues when restarted
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - data incorrectness (checking against double bookkeeping)
+      iso:
+        - Fail safe
+
+    item:
+      action: Validate against the double-bookkeeping databases in real-time
+      target: Billing (auto-recharge) system logic
+      goal: Ensure that the billing system does not have anomalous behavior when records exist
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+

@@ -1,0 +1,134 @@
+#
+# 66.yaml | AWS
+# https://aws.amazon.com/message/680587/
+# 
+# A portion of the ELB state data was deleted when a maintenance process was run against production ELB state data, causing high latency and error rates for managing ELB instances.
+#
+# Researcher Notes:
+#
+
+IR-66:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    
+  memos:
+    - Towards Automation: AI-3 is about automatic recovery from similar failures
+
+    # We have made a number of changes to protect the ELB service from this sort of disruption in the future.
+    - Similarity
+
+    # We have also modified our data recovery process to reflect the learning we went through in this event.
+    - LFI
+
+    # We will also incorporate our learning from this event into our service architecture.
+    - LFI
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1: 
+    #  First, we have modified the access controls on our production ELB state data to prevent inadvertent modification without specific Change Management (CM) approval. Normally, we protect our production service data with non-permissive access control policies that prevent all access to production data. The ELB service had authorized additional access for a small number of developers to allow them to execute operational processes that are currently being automated. This access was incorrectly set to be persistent rather than requiring a per access approval. We have reverted this incorrect configuration and all access to production ELB data will require a per-incident CM approval. This would have prevented the ELB state data from being deleted in this event. This is a protection that we use across all of our services that has prevented this sort of problem in the past, but was not appropriately enabled for this ELB state data.
+
+    motivation:
+      experience: Manual deletion of ELB state data on production environment (mistake)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - data (deletion)
+        - human factors (mistake, deleted data on production environment)
+        - manual action (deleted data on prod)
+      iso:
+        - User error protection
+
+    item:
+      action: Modify access controls to restrict access
+      target: ELB state data access policies
+      goal: Prevent modification without change management approval
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Maintenance / TODO
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User error protection # excluding the security aspect of this
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix defect in access policies
+
+    memos:
+      # This is a protection that we use across all of our services that has prevented this sort of problem in the past, but was not appropriately enabled for this ELB state data.
+      - Best practices: For this organization
+
+
+  AI-2:
+    # We have also modified our data recovery process to reflect the learning we went through in this event. We are confident that we could recover ELB state data in a similar event significantly faster (if necessary) for any future operational event.
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Modify (VAGUE)
+      target: Incident response recovery process
+      goal: Ensure recovery process is much faster
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Recovery process (of data)
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    memos:
+      # (if necessary) for any future operational event.
+      - similar: Phrased as "We will do better in a similar event"
+
+
+  AI-3:
+    # We will also incorporate our learning from this event into our service architecture. We believe that we can reprogram our ELB control plane workflows to more thoughtfully reconcile the central service data with the current load balancer state. This would allow the service to recover automatically from logical data loss or corruption without needing manual data restoration.
+
+    motivation:
+      experience: Recovery from data loss involved lots of manual steps
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action required to recover
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve data reconciliation process
+      target: ELB control plane workflows
+      goal: Allow automated recovery from logical data loss or corruption
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Other
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    themes:
+      - automation / eliminate manual recovery steps (from data issues)

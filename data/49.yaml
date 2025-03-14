@@ -1,0 +1,201 @@
+#
+# 49.yaml | Manta
+# https://www.joyent.com/blog/manta-postmortem-7-27-2015
+# https://tritondatacenter.com/blog/manta-postmortem-7-27-2015
+# 
+# Autovaccuum process blocked all database transactions and caused clients to experience high latency and error responses to about 22% of all types of requests
+#
+# Researcher Notes:
+#
+
+IR-49:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+  patterns:
+    - Over time / temporary the permanent:
+      # We temporarily addressed the issue by configuring PostgreSQL to avoid the transaction wraparound autovacuum operation ...
+      - AI-0 stop autovacuuming and manually monitor, etc
+      - AI-1 reconfiguration (but research, testing, etc needed first)
+      - AI-4 avoid the locking query all together
+
+    # - Concentric-Circles / Expanding scope beyond incident:
+    #   - AI-1 expand investigation to all relevant tunables
+    #   - AI-2 double check that they all work in production
+
+  memos:
+    # We're committed to make sure we fully understand what happened and fix our software and procedures to make sure it does not happen again. That's why we've shared this detailed analysis.
+    - Fully understand, fix
+    - Similar: make sure it does not happen again
+
+    # While there are still some lingering questions (notably: why the first successful autovacuum did not clear the problem), we're heartened that the data we gathered during the outage later allowed us to identify our own locking issue as the most direct and actionable cause.
+    - Incomplete-IR: not knowing why stuff happened still
+    - Uncertainty: lingering questions not uncovered by investigation
+
+    # This was not the first incident we've experienced resulting from insufficient autovacuuming, though it was by far the most disruptive. 
+    - Repeat incident from same cause
+
+    # Indeed, we were not the first service provider within a week to experience an outage related to this behavior. 
+    - Repeat vicarious learning
+
+    # This failure mode was especially painful because by its nature, a database can go years without seeing any symptoms -- until the threat of wraparound suddenly causes a major disruption.
+    - Uncertainty: Tipping-point 
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [A tunable cleanup process for the database was part of the incident] We will take this opportunity to carefully examine the relevant tunables to make sure they're configured to run autovacuum appropriately.
+
+    motivation:
+      experience: A transaction executed requested exclusive lock on table while a tunable clean up process was running
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - blocked execution
+        - automation (background cleanup process)
+      iso:
+        - Co-existence
+
+    item:
+      action: Examine relevant tunables to make sure they are correct
+      target: Database tooling (cleanup process)
+      goal: Make sure the process is tuned correctly
+
+      action-type:
+        - formative / check # going through existing settings
+        - evo / alter
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Tune component maintenance job
+      activity: examine, configure
+      level: component
+      timing: plan and do / x1
+      qa-category: keep within range (autovacuum)
+
+    memos:
+      - This is hard, or perhaps they would have done this sooner
+
+  AI-2:
+    # We'll validate those settings in our pre-production environment under high load.
+
+    motivation:
+      experience: A transaction executed requested exclusive lock on table while a tunable clean up process was running
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - blocked execution
+        - automation (background cleanup process)
+      iso:
+        - Co-existence
+
+    item:
+      action: Validate settings in pre-production environment (under load)
+      target: Database tooling (cleanup process)
+      goal: Make sure the configuration works under load
+
+      action-type:
+        - formative / check
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      activity: test settings (pre-prod)
+      timing: after other AIs (AI-1)
+      qa-category: keep within range (test safety underload)
+
+    themes:
+      - testing under high load
+
+  AI-3:
+    # [An automated process with large performance consequences was part of the incident] We will also be examining the relevant statistics that can be used to identify that these operations are running, have completed, and are cleaning up the issues they're intended to clean up.
+
+    motivation:
+      experience: A transaction executed requested exclusive lock on table while a tunable clean up process was running. They have historically struggled to tune databases to perform maintenance processes
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - blocked execution
+        - automation (background cleanup process)
+      iso:
+        - Co-existence
+
+    item:
+      action: Examine the statistics to verify operation status and health
+      target: Metrics reporting for database cleanup process
+      goal: Make sure they know the complete state of process
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Monitor component behavior (using stats)
+      timing: plan and do / x1
+      activity: examine statistics
+      qa-category: keep within range # Visibility (autovacuum behavior)?
+
+  AI-4:
+    # we're heartened that the data we gathered during the outage later allowed us to identify our own locking issue as the most direct and actionable cause [...] but we will be prioritizing work to avoid the query that attempted to take the exclusive table lock ...
+    motivation:
+      experience: In particular scenario query blocked all other queries
+      lifecycle: 
+        - Failure / Inception
+
+    item:
+      action: Eliminate query (that took exclusive lock)
+      target: Database and application queries
+      goal: Prevent deadlock at database level
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Time behavior (avoiding deadlock)
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - prevent
+      
+    other:
+      timing: preparatory steps / prioritizing
+      qa-category: keep within range (avoid blocking other queries)
+
+    themes:
+      - directly actionable cause
+      - stop until safe to restart
+      

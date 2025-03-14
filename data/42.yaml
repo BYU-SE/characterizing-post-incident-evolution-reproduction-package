@@ -1,0 +1,328 @@
+#
+# 42.yaml | Salesforce
+# https://help.salesforce.com/apex/HTViewSolution?urlname=Root-Cause-Message-for-Disruption-of-Service-on-NA14-May-2016&language=en_US
+#
+# A power outage caused a failure of part of the Washington, D.C. data center causing customers on the NA14 instance to be unable to access Salesforce service. They performed a site switch from the primary data center (WAS) to a secondary (CHI). The next day the database experienced a failure due to file inconsistencies which had been replicated and multiple attempts to restore resulted in failures. They eventually restored from a local backup, and applied redo logs, before halting for customer activity.
+# 
+#
+# Researcher Notes:
+#
+# I've included longer AI summaries than usual since this incident report is very technical and hard to understand.
+
+IR-42:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Architecture / Complete replacement: 
+      # MP: They worked hard to get rid of hardware that was bad (circuit breakers), firmware that was bad (replace hardware components that had a bug in it instead of patching), and software that was bad (replication process). Wording implies that they are trying to distance themselves from it, and that they are very thorough in their excision.
+      - AI-1 replace component (power)
+      - AI-5 replace component (storage)
+      - AI-6 replace software (replication)
+
+    - Architecture / Layers of protection (concentric circles):
+      # - One aspect of failure, addressing a single point of failure
+      - AI-2 audit existing system
+      - AI-3 room design
+      - AI-4 add redundancy
+
+    - Architecture / Defense-Along-Propagation-Path:
+      # MP: Connecting the dots for the incident that began as a power failure and propagated through to a data issue
+      - AI-1 replace failed component
+      - AI-3 replace circuit breaker
+      - AI-4 power redundancy (to servers) 
+      - AI-5 DB hardware (propagated to ...)
+      - AI-6 replace software (replication)
+      - AI-7 DB configuration
+
+  memos:
+    - AI-Section-Title: Section called 'Next Steps and Preventive Actions:'
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The root cause of the initial power failure to the WAS data center was a failure of a main critical board that tripped open a circuit breaker pair. The breakers are used to segment power from the data center universal power supply ring and direct the power into the different rooms. This failed board caused a portion of the power distribution system to enter a fault condition. The fault created an uncertain power condition, which led to a redundant breaker not closing to activate the backup feed because that electronic circuit breaker could not confirm the state of the problem board. Despite ongoing investigation, the root cause for the initial failure and subsequent fault condition of the breaker remains unknown. The breaker in question passed load testing in March 2016 as part of our regular data center certification. The manufacturer has reported that forensics testing was ultimately inconclusive due to the unusual failure condition. Our vendor responsible for the WAS data center power circuits has replaced the failed components.
+
+    motivation:
+      experience: Power circuit breaker failed and the backup power systems did not engage
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power circuit breaker failed)
+      iso:
+        - Fail safe
+
+    item:
+      action: Replace failed components
+      target: Data center power circuits
+      goal: Remove components which failed for unknown reasons to eliminate the possibility of them causing future issues
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Infrastructure / Power equipment
+      sts:
+        - Infrastructure / Data center power circuits
+      intended-effect:
+        - Safety / Fail safe
+        - Reliability / Faultlessness (trust that it is)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Replace hardware components (failed comps)
+      level: component
+
+    memos:
+      - Just-In-Case: This goal seems to be really about 'well it failed and we aren't sure why, but lets just remove it since it could be problematic in the future but we don't know'
+  
+  AI-2:
+    # The root cause of the initial power failure to the WAS data center was a failure of a main critical board that tripped open a circuit breaker pair. The breakers are used to segment power from the data center universal power supply ring and direct the power into the different rooms. This failed board caused a portion of the power distribution system to enter a fault condition. The fault created an uncertain power condition, which led to a redundant breaker not closing to activate the backup feed because that electronic circuit breaker could not confirm the state of the problem board. Despite ongoing investigation, the root cause for the initial failure and subsequent fault condition of the breaker remains unknown. The breaker in question passed load testing in March 2016 as part of our regular data center certification. The manufacturer has reported that forensics testing was ultimately inconclusive due to the unusual failure condition. Our internal Data Center Operations team, in partnership with our data center providers, have completed an audit of the power and failover systems in all Salesforce data centers. This audit identified two rooms with similar power distribution designs. [We will do AI-3, AI-4] These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+
+    motivation:
+      experience: Power circuit breaker failed and the backup power systems did not engage
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power circuit breaker failed)
+      iso:
+        - Fail safe
+
+    item:
+      action: Audit the power and failover systems in all data centers
+      target: Data center power and failover systems
+      goal: Check if they are vulnerable for similar failure, reduce the potential single point of failure class of issues
+
+      action-type:
+        - formative / check
+      target-type:
+        - Infrastructure / Power equipment
+      sts:
+        - Infrastructure / Data center power and failover systems
+      intended-effect:
+        - Safety / Fail safe (failover)
+        - Reliability / Faultlessness (trust that it is)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      activity: audit
+      level: system
+
+    memos:
+      # These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+      - Similar: Condition, Locality, Look for an important aspect of the incident in other replicas (data centers) to see if this failure scenario (power failure, single point of failure) could happen again
+      - Similar_Explicit: Single point of failure for power event ('in a similar manner in the future') (AI-2, AI-3)
+      - Defense-In-Depth: Three actions to address similar (AI-2, AI-3, AI-4)
+      - Plan-To-Plan: Leads to AI-3 and AI-4, and audit is the first step to knowing what to do and identifying vulnerabilities.
+      - Single-Point-Of-Failure: Component, power circuit breaker failing
+
+  AI-3:
+    # The root cause of the initial power failure to the WAS data center was a failure of a main critical board that tripped open a circuit breaker pair. The breakers are used to segment power from the data center universal power supply ring and direct the power into the different rooms. This failed board caused a portion of the power distribution system to enter a fault condition. The fault created an uncertain power condition, which led to a redundant breaker not closing to activate the backup feed because that electronic circuit breaker could not confirm the state of the problem board. Despite ongoing investigation, the root cause for the initial failure and subsequent fault condition of the breaker remains unknown. The breaker in question passed load testing in March 2016 as part of our regular data center certification. The manufacturer has reported that forensics testing was ultimately inconclusive due to the unusual failure condition. Our internal Data Center Operations team, in partnership with our data center providers, have completed an audit of the power and failover systems in all Salesforce data centers. This audit identified two rooms with similar power distribution designs. The team has updated these room designs to an N+1 configuration. Additionally, [we will do AI-4]. These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+
+    motivation:
+      experience: Power circuit breaker failed and the backup power systems did not engage
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power circuit breaker failed)
+      iso:
+        - Fail safe
+
+    item:
+      action: Update design to use an N+1 configuration
+      target: Data center power circuits
+      goal: Reduce the potential single point of failure (power circuit breaker failing) in a similar manner in the future
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Infrastructure / Power equipment
+      sts:
+        - Infrastructure / Data center power circuits
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Remodel power architecture (N+1 redundancy)
+      activity: update design
+      level: system
+
+
+    memos:
+      # These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+      - Similar: Condition, Locality, Look for an important aspect of the incident in other replicas (data centers) to see if this failure scenario (power failure, single point of failure) could happen again
+      - Similar_Explicit: Single point of failure for power event ('in a similar manner in the future') (AI-2, AI-3)
+      - Defense-In-Depth: Three actions to address similar (AI-2, AI-3, AI-4)
+      - Single-Point-Of-Failure: Component, power circuit breaker failing
+      - Best-Practice: Largely considered a 'best practice'
+
+  AI-4:
+    # The root cause of the initial power failure to the WAS data center was a failure of a main critical board that tripped open a circuit breaker pair. The breakers are used to segment power from the data center universal power supply ring and direct the power into the different rooms. This failed board caused a portion of the power distribution system to enter a fault condition. The fault created an uncertain power condition, which led to a redundant breaker not closing to activate the backup feed because that electronic circuit breaker could not confirm the state of the problem board. Despite ongoing investigation, the root cause for the initial failure and subsequent fault condition of the breaker remains unknown. The breaker in question passed load testing in March 2016 as part of our regular data center certification. The manufacturer has reported that forensics testing was ultimately inconclusive due to the unusual failure condition. Our internal Data Center Operations team, in partnership with our data center providers, have completed an audit of the power and failover systems in all Salesforce data centers. This audit identified two rooms with similar power distribution designs. The team has [done AI-3] Additionally, all hardware racks in these rooms have been dual-corded across busways to further reduce the reliance on individual components. These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+    
+    motivation:
+      experience: Power circuit breaker failed and the backup power systems did not engage
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power circuit breaker failed)
+      iso:
+        - Fail safe
+
+    item:
+      action: Dual-cord across busways
+      target: Data center power cabling (for hardware racks)
+      goal: Reduce the reliance on individual components to reduce the potential single point of failure (power circuit breaker failing) in a similar manner in the future
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Infrastructure / Power equipment
+      sts:
+        - Infrastructure / Data center hardware racks
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Remodel cabling to racks (redundant dual-cord)
+      activity: cord (better name?)
+      level: system
+
+    memos:
+      # These actions reduce the potential single point of failure in the event of a single power circuit breaker failing in a similar manner in the future.
+      - Similar: Condition, Locality, Look for an important aspect of the incident in other replicas (data centers) to see if this failure scenario (power failure, single point of failure) could happen again
+      - Defense-In-Depth: Three actions to address similar (AI-2, AI-3, AI-4)
+
+  AI-5:
+    # Through investigation alongside our storage array vendor, the root cause of the database failure on May 10, 2016, was determined to be a latent firmware bug that was exposed due to increased traffic volume resulting from a combination of factors. This increase in volume on the instance exposed the firmware bug on the storage array, which significantly increased the time for the database to write to the array. Because the time to write to the storage array increased, the database began to experience timeout conditions when writing to the storage tier. Once these timeout conditions began, a single database write was unable to successfully complete, which caused the file inconsistency condition to become present in the database. Once this inconsistency occurred, the database cluster failed and could not be restarted. The NA14 storage array hardware in the WAS and CHI data centers have been replaced with components that have higher firmware versions, and therefore are not vulnerable to the bug that caused the increased storage write times. No other instances have the version of firmware on which the bug exists.
+
+    motivation:
+      experience: Latent firmware defect on storage array (under load) caused file inconsistency issue to be present in the database
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (latent issue exposed under load which increased time for writes)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Replace storage array hardware with components that have higher firmware versions
+      target: Database volume array hardware
+      goal: Eliminate firmware bug to prevent future incidents involving the failure conditions
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Infrastructure / Data center storage array hardware
+      intended-effect:
+        - Performance Efficiency / Time behavior (write time at scale)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Replace storage components (firmware version)
+      activity: swap hardware (not just firmware)
+      level: component
+
+    memos:
+      - Updated firmware by replacing components completely. Removed bug by replacing dependency with problematic condition completely, rather than trying to patch the firmware.
+
+  AI-6:
+    # Our remote replication process copied the blocks that contained the file inconsistencies to the standby copy of the database in the WAS data center before the database crashed, resulting in these copies of the NA14 database being unusable for purposes of restoring service once the database cluster failed. Through investigations alongside our third-party database vendor, the root cause for the database cluster crash resulting in file inconsistencies was determined to be a result of database partition alignment. The partitioning on the database storage disks resulted in database blocks becoming misaligned with the cache segments. This led to a situation where individual database blocks were split between two cache segments at the time of the database cluster crash. In this situation, the full cache segments containing a subset of partial database blocks were written to disk. Partial cache segments containing the remaining database blocks, were not written to disk at the time of the database cluster crash. The Salesforce infrastructure team is in the process of deploying a new technology for data replication to standby copies of instances. This updated approach will utilize the wide-area network (WAN) to perform logical, database level replication, eliminating block-level replication. Additionally, this technology will help to perform site switches in a more streamlined and timely manner.
+
+    motivation:
+      experience: File inconsistencies were replicated to a standby copy of the database before it crashed, resulting in the copies being unusable for restoring service 
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (data to standby copies via replication process)
+        - data (replicating bad data)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Deploy new data logical-level replication technology to stand-byes (uses a wide-area network)
+      target: Database replication technology
+      goal: Eliminate old replication strategy which caused further problems in the incident, and improve site switching process
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness
+        - Performance Efficiency / Resource utilization (streamlined)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Replace replication mechanism (new technology)
+      level: component
+        - Performance Efficiency / Time behavior (timely)
+
+    memos:
+      - Complete replacement
+
+  AI-7:
+    # Our remote replication process copied the blocks that contained the file inconsistencies to the standby copy of the database in the WAS data center before the database crashed, resulting in these copies of the NA14 database being unusable for purposes of restoring service once the database cluster failed. Through investigations alongside our third-party database vendor, the root cause for the database cluster crash resulting in file inconsistencies was determined to be a result of database partition alignment. The partitioning on the database storage disks resulted in database blocks becoming misaligned with the cache segments. This led to a situation where individual database blocks were split between two cache segments at the time of the database cluster crash. In this situation, the full cache segments containing a subset of partial database blocks were written to disk. Partial cache segments containing the remaining database blocks, were not written to disk at the time of the database cluster crash. The database partition alignment condition has been corrected. This will prevent conditions where database blocks are split between cache segments and will prevent file integrity inconsistencies resulting from misaligned database blocks at the time of potential database crashes in the future.
+
+    motivation:
+      experience: File inconsistencies were replicated to a standby copy of the database before it crashed, resulting in the copies being unusable for restoring service 
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (data to standby copies via replication process)
+        - data (replicating bad data)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Correct database partition alignment condition
+      target: Storage volume disk level data partitioning
+      goal: Prevent conditions that led to file integrity inconsistencies (part of the failure)
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Data stores / Data and data architecture
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        # - Safety / Operational constraint (or whatever maintaining data integrity is)
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - repair
+
+    other:
+      modification: Fix disk-level alignment defect
+      level: component
+
+    memos:
+      # This will prevent conditions
+      - Preventing conditions rather than a failure itself.
+

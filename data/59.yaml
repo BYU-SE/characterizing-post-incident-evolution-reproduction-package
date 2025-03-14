@@ -1,0 +1,152 @@
+#
+# 59.yaml | Travis CI
+# http://blog.travis-ci.com/2017-09-20-sept-6-11-macos-outage-postmortem
+# https://web.archive.org/web/20170923014456/http://blog.travis-ci.com/2017-09-20-sept-6-11-macos-outage-postmortem
+#
+# Instability in their storage infrastructure (SAN) was caused by ongoing performance limitations. The storage got too full too keep up with demands and had to be shutdown and cleaned. The service operated with reduced capacity for an extended time.
+# 
+#
+# Researcher Notes:
+#
+
+IR-59:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    - Tools and scripts developed during mitigation become part of system more permanently
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Ongoing performance limitations with our current shared SAN platform were leading to hypervisor host instability. SAN storage got too full to be able to keep up with our I/O demands. We’re currently working with our infrastructure provider on a new dedicated SAN platform which will bring dedicated capacity with faster storage and increased storage network throughput.
+
+    motivation:
+      experience: Performance limitations of SAN platform
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - performance limitations
+      iso:
+        - Time behavior
+
+    item:
+      action: Create new dedicated storage infrastructure to replace existing
+      target: Storage infrastructure (array hardware/firmware)
+      goal: Bring dedicated capacity with faster storage and increased throughput
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Infrastructure / Data center storage
+      intended-effect:
+        - Performance Efficiency / Time behavior (space and throughput)
+        # - Performance Efficiency / Capacity (dedicated capacity)
+      temporal: new
+      google-ai:
+        - prevent
+      qa-category: extend range (new infrastructure)
+
+    other:
+      modification: Replace (upgrade) storage platform
+      activity: design, deploy
+      level: system
+      timing: started
+
+    themes:
+      - improve performance along 2 dimensions
+      - sufficient fix ("anticipate that [AI-1] will be sufficient")
+
+  AI-2:
+    # Over time the amount of used space on our SAN LUNs had grown. We had initially attributed this to our overall growth in usage and concurrent load, and realized too late that due to the host instability mentioned above, we were accumulating orphaned folders/files on the SAN that were not visible to existing cleanup processes. This reduction in free space hit a point where there was too little space for the SAN to be able to keep up with our peak load. [..] Through the cleanup process, we developed a set of scripts which were able to help us identify and cleanup orphaned files/folders. While we anticipate that improvements from the new SAN platform will be sufficient enough to prevent the accumulation of orphaned files/folders in the future, we plan to utilize some of these scripts to do reporting and generate metrics to measure and verify that the new SAN platform brings the improvements we expect.
+
+    motivation:
+      experience: Orphaned folders and files on SAN used up space over a long period of time, and eventually reached a point where there was too little space to keep up with peak load
+      lifecycle:
+        - Failure / Inception
+        #- Pre-incident # [TODO] Slow fill up of space, led to limit being hit
+      tags:
+        - high load (peak load, with limited file space the SAN platform was unable to keep up with serving this load)
+        - limit hit (file space consumed, SAN was unable to keep up with peak load)
+        - data (not cleaning up files)
+        - over time
+      iso:
+        - Resource utilization
+
+    item:
+      action: Use scripts for reporting, monitoring, and verification of the new replacement storage infrastructure
+      target: Metrics reporting for storage infrastructure
+      goal: Measure and verify that replacement infrastructure conforms to expectations
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Expose metrics & verify (improved) behavior
+      timing: after other AIs (AI-1)
+      qa-category: extend range (well be sure ...) # Visibility (measure and verify)
+    
+    memos:
+      - Running risks and approaching thresholds
+
+    themes:
+      - maintenance tooling / reusing scripts from incident
+      - uncertainty / verifying AI-1 (they expect AI-1 to be enough but ...)
+
+  AI-3:
+    # There will also be some forthcoming announcements about other product changes we may be implementing to help manage the overall travis-ci.org macOS backlog.
+
+    motivation:
+      experience: They managed the QoS to customers through a backlog (trying to clear it)
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (backlog of work to process)
+        - slow operation (working through backlog)
+      iso:
+        - Recoverability
+
+    item:
+      action: Make changes (VAGUE)
+      target: Job execution system (for builds) backlog management
+      goal: Help manage the macOS backlog
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Interaction Capability / Operability (manage)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Additional changes ("help manage")
+      timing: no plan
+      qa-category: UNCLEAR (could be keep in range or extend range)
+
+    memos:
+      # "we may be implementing"
+      - Commitment: Wishy-washy language about what actual changes are done

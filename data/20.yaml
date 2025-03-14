@@ -1,0 +1,240 @@
+#
+# 20.yaml | Monzo
+# https://monzo.com/blog/2019/09/08/why-monzo-wasnt-working-on-july-29th
+#
+# Scaling up their Cassandra cluster (initially 21 servers, adding 6) triggered a bunch of failures across their systems (routing, customer support, configuration, ...). The new servers joined the cluster (taking responsibility for some keys) before the data had been streamed to it (which showed up as missing data for some queries).
+#
+#
+# Researcher Notes:
+#
+
+IR-20:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Concentric-Circles / Specific then class of problems:
+      - AI-1 prevent specific (configuration issue)
+      - AI-2 prevent errant configuration changes (runbooks)
+      - AI-4 prevent class of issue (architectural)
+
+  memos:
+    - AI-Section-Title: Section titled "To stop this happening again, we're making some changes"
+    - Similar: Section titled "stop this happening again"
+
+    # As a result, during peak load, our Cassandra cluster was running closer to its limits than we'd like. And even though this wasn't affecting our customers, we knew if we didn't address it soon we'd start seeing an increase in the time it'd take to serve requests.
+
+    - Uncertainty: On the theme of headroom, incident was triggered by scaling up to keep ahead
+
+    # We discuss whether the scale-up activity could have caused the issue, but discount the possibility as everything appears healthy [...] We don't think this is possible given our understanding of what's happened so far, but we keep investigating.
+
+    - Investigation misdirected due to assumptions and limited visibility
+
+    # We fixed the majority of issues by the end of that day. And since then, we've been investigating exactly what happened and working on plans to make sure it doesn't happen again. In the spirit of transparency, we'd like to share exactly what went wrong from a technical perspective, and how we're working to avoid it in the future.
+
+    - Make sure it doesn't happen again
+    - Similar: Avoiding "it" which is the "what went wrong"
+    - The second sentence in the quote is a distillation of FDSE
+
+    # But when our last scale up in October 2018 was complete, we'd set the auto_bootstrap flag to false for our production environment. We did this so that if we lost a server in our cluster (for example, due to hardware failure) and had to replace it, we'd restore the data from backups (which would be significantly faster and put less pressure on the rest of the cluster) rather than rebuild it from scratch using the other servers which had the data.
+    # During the scale-up activity, we had no intention to stream the data from backups. With auto_bootstrap set to false, we expected the six new servers would be added to cluster, agree on the partitions of data they were responsible for, and remain inactive until we initiated the rebuild/streaming process on each server, one-by-one.
+    # But this wasn't the case. It turns out that in addition to the data streaming behavior, the flag also controls whether new servers join in an active or inactive state. Once the new servers had agreed on the partitions of data they were responsible for, they assumed full responsibility without having any of the underlying data, and began serving queries.
+
+    - A past PA (set a configuration) led to the issue in this report
+
+    # 13:14 Our automated alerts detect an issue with Mastercard, indicating a small percentage of card transactions are failing [...] 13:14 We receive reports from Customer Operations (COps) that the tool they use to communicate with our customers isn't working as expected [...]
+
+    - 1st indications of incident were from downstream services (seemingly coincidental)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [Production configuration of Cassandra cluster meant that] The new servers had joined the cluster, assumed responsibility for some parts of the data (certain partition keys to balance the load), but hadn't yet streamed it over [...] We've already fixed our use of auto_bootstrap.
+
+    motivation:
+      experience: When new servers joined the cluster, a latent configuration defect (misunderstood) meant that they did not get data yet before taking responsibility
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (configuration, taking responsibility of data before ownership)
+        - human factors (misunderstood configuration)
+        - maintenance action (scaling up)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Change misunderstood setting controlling behavior of new nodes 
+      target: Distributed datastore (Cassandra cluster)
+      goal: Safe scale-up operations
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Interaction Capability / User error protection (safe addition of instances)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Tune misunderstood configuration (or fix)
+      activity: reconfigure
+      level: component
+
+    memos:
+      - Improving-Understanding: Misunderstanding is a key idea here; they had to research meaning of param
+      - Defense-In-Depth: (AI-1, AI-2) Fix one bad configuration setting
+
+  AI-2:
+    # [Continuing from above] And we've also reviewed and documented all our decisions around the other Cassandra settings. This means we have more extensive runbooks – the operational guides we use to provide step-by-step plans on performing operations such as a scale up or a restart of Cassandra. This'll help fill the gaps in our knowledge, and make sure that knowledge is spread to all our engineers.
+
+    motivation:
+      experience: When new servers joined the cluster, a latent configuration defect (misunderstood) meant that they did not get data yet before taking responsibility
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (configuration, taking responsibility of data before ownership)
+        - human factors (misunderstood configuration)
+        - risk of outage (similar)
+        - maintenance action (scaling up)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Review and document all settings decisions
+      target: Maintenance procedures (runbooks for Cassandra operations)
+      goal: Increase operational safety, fill knowledge gaps, spread knowledge
+
+      action-type:
+        - formative / check
+        - evo / add
+      target-type:
+        - Data stores / Clustering and replication # TODO: But broader
+        - Maintenance / TODO
+      sts:
+        - Process / Operational documentation (runbooks and guides)
+      intended-effect:
+        - Interaction Capability / User error protection (create expertise)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Formalize scale-up operation process, etc (step by step)
+      activity: review decisions, document decisions
+
+    memos:
+      - Improving-Understanding: A kind of broadening motivated by the recent "impossible behavior", investigation required
+      - This is a PA that leads to a creating, retaining and transferring an LL (LFI)
+      - Defense-In-Depth: (AI-1, AI-2) Check other configuration settings and verify there is no misunderstanding
+      - Similar: to AI-1, but this checks elsewhere
+
+  AI-3:
+    # We discuss whether the scale-up activity could have caused the issue, but discount the possibility as everything appears healthy [...] Another key issue that delayed our actions was the lack of metrics showing Cassandra as a primary cause of the issue. So we're also looking at exposing more metrics and adding potential alerting for strong shifts in metrics like 'row not found'.
+
+    motivation:
+      experience: Metrics did not point to database as cause of issue, delaying action
+      lifecycle:
+        - Response / Triage
+        - Response / Diagnosis
+      tags:
+        - delayed RCA (metrics did not point responders in right direction)
+        - missing monitoring
+      iso:
+        - Recoverability
+
+    item:
+      action: Look into exposing more metrics and alerting (on strong shifts)
+      target: Metrics reporting from distributed data store
+      goal: More quickly identify problems (better visibility)
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - mitigate future #/ avoid misdirection (add better metrics)
+
+    other:
+      modification: Expose more (internal) metrics, add alarms on strong shifts
+      activity: investigate
+      level: component
+
+    memos:
+      # We confirm there's been no impact using the metrics from both the database and the services that depend on it (i.e. server and client side metrics). To do this, we look for any increase in errors, changes in latency, or any deviations in read and write rates. All of these metrics appear normal and unaffected by the operation.
+
+      - Whatever is measured is what is used to determine that everything is normal
+      - Other metrics (not readily available) would have given the right diagnosis
+      - Alerts were all about downstream effects of the initial failure
+      - Improving-Understanding: Investigation required
+      - Commitment: Wishy-washy language
+
+  AI-4:
+    #  At the time you might not have been able to log into the app, send and receive payments or withdraw money [...] get in touch with [...] We'll split our single Cassandra cluster into smaller ones to reduce the impact one change can have [...] We’d like to reduce the likelihood that any single activity can impact more than one area of Monzo [and] we believe this would have been a much less complex issue to deal with. [..] In the long term, we plan to split up our single large cluster into multiple smaller ones [AND the reason this is long-term] We want to make sure we get it right though; doing it in such a way that doesn't introduce too much operational complexity, or slow our engineers down at releasing new features to customers.
+
+    motivation:
+      experience: Maintenance action involved scaling the single cluster architecture (a risky action since it can wide effects)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (architecture)
+        - maintenance action (scaling up is a risky operation because of design)
+      iso:
+        - Fault tolerance # [TODO] Does this make sense?
+
+    item:
+      action: Split cluster into multiple clusters (based on client services)
+      target: Distributed datastore architecture (and associated services)
+      goal: 1) Reduce impact of single issue, 2) Simplify triage and mitigation, 3) Safer operation at scale
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Data and data architecture
+      target-sys: architecture
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (split for redundancy & isolation to limit impact)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    themes:
+      # operational complexity, or slow our engineers down at releasing new features to customers
+      - tradeoffs / isolation vs operational complexity (etc)
+
+    other:
+      modification: Partition data store component by service type
+      level: system
+      scope: long-term # in the long term, we plan to ...
+
+      
+    memos:
+      # The single cluster approach has been advantageous for engineers building services – they don't have to worry about which cluster to put a service on, and we only have to operationally manage and monitor one thing. But a downside of this design is that a single change can have a far-reaching impact, like we saw with this issue. We’d like to reduce the likelihood that any single activity can impact more than one area of Monzo.
+
+      - Tradeoffs: Incident analysis can lead one to make a different set of tradeoffs (theme)
+
+      # In the long term, we plan to split up our single large cluster into multiple smaller ones [AND the reason this is long-term] We want to make sure we get it right though; doing it in such a way that doesn't introduce too much operational complexity, or slow our engineers down at releasing new features to customers.
+
+      - First-Fast-Then-Better: (Right) Long term, significant change
+
+      - Defense-In-Depth: (AI-4) Multiple goals of a single action
+
+      - Single-Point-Of-Failure: Everything built around making something single into many

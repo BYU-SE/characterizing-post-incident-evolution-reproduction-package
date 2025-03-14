@@ -1,0 +1,231 @@
+#
+# 46.yaml | PagerDuty
+# https://www.pagerduty.com/blog/outage-post-mortem-april-13-2013/
+#
+# A failure beginning in a common peering point resulted in two of three data centers going offline 
+#
+# Researcher Notes:
+#
+IR-46:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+  patterns:
+    - Over time / Collective-Hardening (Immediate and longer term, effort/approval):
+      - AI-1 short (add logging)
+      - AI-2 short (add process watcher)
+      - AI-3 short (add dashboard)
+      - AI-4 long (train staff)
+      - AI-5 long (change data center)
+
+
+  memos:
+    - Seems well rounded for adding more metrics, adding automation for areas that are easy to automate, adding training, adding visibility, and then doing 1 thing they think will "prevent" the problem, which they already knew would work
+    - Distinguish between short term and long term plans to correct discovered issues
+    - Training is an AI, which accepts that humans are part of sts, and may represent deeper learning than just fixing a problem
+    - Updating best practice / mental model (that data centers are not completely isolated)
+
+    # As always with major outages, we learn something new about deficiencies in our software. 
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # During our analysis, we found that we didn’t have adequate logging to debug issues within some of our systems.  We have now added more logging and started to aggregate them into a single source for better searchability.
+
+    motivation:
+      experience: Hard to debug issue due to inadequate logging
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - delayed RCA (couldn't debug due to missing logs)
+        - missing monitoring (inadequate for debugging, and not aggregated)
+      iso:
+        - Recoverability
+
+    item:
+      action: Add more logging and aggregate logs
+      target: Metrics reporting and logging
+      goal: Increase searchability to debug issues better
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Expose and aggregate additional logging (for searchability)
+      level: system
+      timing: short term
+      qa-category: visibility into behavior
+
+
+  AI-2:
+    # During the outage, most of the failed coordinator processes were restarted manually.  We are going to add a process watcher to restart such processes automatically.
+
+    motivation:
+      experience: They had to restart the failed process manually
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action required (restart failed process)
+        - automation (missing)
+      iso:
+        - Recoverability
+
+    item:
+      action: Add a automated process watcher to restart failed processes
+      target: Automated restart system (monitoring for processes)
+      goal: Reduce need for human intervention
+
+      action-type:
+        - evo / add
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / Operability (automation)
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Automate process restart operation (was manual)
+      timing: short term
+      qa-category: recovering to safe range (when dependency recovers)
+    
+    themes:
+      - automation / auto-restart process (process watcher)
+      - ungraceful recovery / manual restart needed (configuration issue)
+
+  AI-3:
+    # We also found that we didn’t have good visibility into the inter-host connectivity. We’ll be building a dashboard that shows this.
+
+    motivation:
+      experience: They had limited visibility into inter-host connectivity
+      lifecycle:
+        - Response / Detection
+      tags:
+        - delayed recovery (missing visibility)
+        - missing monitoring (into inter-host connectivity)
+      iso:
+        - Recoverability
+
+    item:
+      action: Build a dashboard which shows inter-host connectivity
+      target: Monitoring and dashboard system
+      goal: Increase visibility into inter-host connectivity
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect #/ dashboard (add)
+
+    other:
+      modification: Expose inter-host connectivity metrics on new dashboard
+      activity: building
+      level: component
+      timing: short term
+      qa-category: visibility into behavior (inter-host connectivity)
+
+  AI-4:
+    # We also found that not all of our engineering staff are up to date with Cassandra and ZooKeeper.  We’ll be investing time to train our staff on both of these technologies.
+
+    motivation:
+      experience: Some staff lack some knowledge for their database and configuration managing tools
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - human factors (knowledge, training)
+      iso:
+        - Operability
+
+    item:
+      action: Train staff on database and configuration software being used
+      target: Incident response (staff training)
+      goal: Bring staff up to date with technologies being used
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Preparation
+      sts:
+        - People / Training
+      intended-effect:
+        - Interaction Capability / Operability (expertise & training)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Train existing staff on cluster management technology
+      activity: train
+      timing: long term
+      qa-category: recovering to safe range (training)
+
+    memos:
+      - These topics are not otherwise referenced in the incident report at all
+
+  AI-5:
+    # [Incident involved 2 data centers in AWS though the other data center in Linode was fine. The data centers in AWS shared a peering point which degraded, despite them thinking that the regions were completely independent data centers] Investigate moving off one of the AWS regions.  We’ll need to do our homework when picking a new hosting provider and the datacenter to avoid single point of failure.
+
+    motivation:
+      experience: The two data centers shared a peering point which failed
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (network failure - shared peering point failed)
+        - missing redundancy
+        - risk of outage (spof, no true isolation)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Investigate moving data center to a new hosting provider
+      target: Data centers with shared peering point
+      goal: Avoid a single point of failure that could be shared if data centers are from the same hosting provider
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Infrastructure / Data center
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Remodel data center architecture (add redundancy, remove SPoF)
+      activity: investigate
+      level: system
+      timing: long term
+      qa-category: contain failure (datacenter isolation)
+
+    memos:
+      - Counter example to "long term work is often existing work"
+      - Single-Point-Of-Failure: Shared dependency for the previously considered isolated data centers
+      - Best-Practice: Having no single point of failure, they attempted a best practice but it was found out that it wasn't quite there.

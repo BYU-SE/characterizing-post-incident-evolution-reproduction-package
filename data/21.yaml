@@ -1,0 +1,355 @@
+#
+# 21.yaml | Bungie (Destiny 2 game)
+# https://www.bungie.net/7/en/News/Article/48723
+#
+# A hotfix re-introduced a previously fixed defect (causing errors for some player accounts) because servers crashed and restarted WITHOUT picking up the fix. Responders rolled back the hotfix and rolled back the accounts to previous state.
+#
+#
+# Researcher Notes:
+#
+
+IR-21:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better:
+      - AI-0 during incident temporary defect fix was put out
+      - AI-1 is out now; fixing hot-patching (basis for AI-3)
+      # Unfortunately the 2.7.1.1 Hotfix was too far along to benefit from this
+      - AI-3 out with next (not current) hot-patch; permanent defect fix
+      - AI-2 out with next major release (1 month); fix servers crashing (rather than continue with workaround that bit them)
+      - AI-4, AI-5, AI-6, AI-7 indeterminate future
+    
+    - Over time / Collective-Hardening (tied to release plan): # see 'AI timeline' memo
+      - AI-0 during incident temporary defect fix was put out
+      - AI-1 is out now; fixing hot-patching (basis for AI-3)
+      # Unfortunately the 2.7.1.1 Hotfix was too far along to benefit from this
+      - AI-3 out with next (not current) hot-patch; permanent defect fix
+      - AI-2 out with next major release (1 month); fix servers crashing (rather than continue with workaround that bit them)
+      - AI-4, AI-5, AI-6, AI-7 indeterminate future
+
+    - Fix and protect / Chain of contributing factors (wrong code version used):
+      - AI-1 patching process (done)
+      - AI-2 crashing servers (next major release)
+      - AI-5 servers picking up wrong versions (future)
+
+    - Fix and protect / Against immediate and future defects:
+      # we applied a patch to the servers instead of trying to get a full build of the game code deployed
+      - AI-0 temporary fix (during incident)
+      - AI-3 permanent fix (next patch release) 
+      - AI-6 harden code against future defects
+
+  memos:
+    - AI-Section-Title: Section titled "PREVENTIVE MEASURES"
+
+    - AI timeline: The release strategy of the organization contributed to the incident and also dictates the timing of AIs. Hot-patching (how they do a between release deployment) led to a reintroduction of a defect. As shown in the 'Collective-Hardening' patterns above, their plan is to move from temporary mitigations, to better fixes. The schedule is based (in part) on their preexisting (patch and major) release schedule, at least for the first 3 AIs. This is an example where the timeline is explicit in the postmortem list of AIs, at least to the point where they basically say "looking ahead ...". It seems that there are two key things being accomplished across multiple AIs. First, fix the defect and then harden the code. Second, make sure servers are using the right code. INTERESTINGLY in both cases, a concrete improvement is on the release schedule, with another improvement not scheduled but simply planned for the future. I suppose with the first change in, the followup improvements become less urgent, though not unimportant.
+
+    # Before every major release (for example, Shadowkeep), we do comprehensive stress testing to try and model user behavior and its impact on our service architecture. Because there’s no substitute for millions of real player behaviors, we supplement this testing by closely monitoring service metrics after launch.
+    - Limits of testing and monitoring: They explicitly try to model user behavior in their stress testing, but feel that they can not do this perfectly, as there is "no substitute for millions of real player behaviors". For them this is a fundamental limitation of testing, and so instead they deploy (to these real users) and use monitoring to catch (performance related issues) "after launch". They also perform manual testing in production by logging in with test accounts, but in this case the testers were "(un)lucky enough to hit the 'good' servers" rather than the "small percentage of servers that were in a bad state". The consequence was that after the initial fix, they "thought everything was fine" and "gave the all clear". The theme here is about the limits of testing and testing environments, and also the relationship between testing and monitoring.
+
+    # With today’s incident, we have taken similar steps and rolled back accounts to the state they were in as of 8:30 AM PST [...] The 2.7.1 update had the aforementioned bug that caused character data corruption and resulted in our first ever rollback of character data. 
+    - Meanings, consequence and actions around rolling back
+
+    # To fix that issue quickly, we applied a patch to the servers instead of trying to get a full build of the game code deployed. This involved making a change to a server setting to override the game code used to process character data and then restarting the WorldServers to pick up that change. 
+    - Resolution speed versus safety: The patching (rather than doing a "full build") action was motivated by the (reasonable) desire to "fix that issue quickly" but led to failure because the defect was re-introduced, where it would not have been if a full build had been completed. Interestingly, the AIs proposed basically aim to address (1) the defect, and (2) the reasons that defect was reintroduced by their hurry-up approach.
+
+    # Unbeknownst to us, this crash resulted in those WorldServers not applying the previous character data corruption fix. This meant that a small percentage of WorldServers were running the old code and the bug that was corrupting character data. We have verification systems that detect these sorts of version misconfigurations, but the WorldServer crashes and subsequent manual restarts caused the servers to also skip the verification process. Prior to this morning, we had believed skipping these overrides and verifications to be impossible [...]  Our investigation uncovered what we thought was an impossible situation [...]
+    - Uncertainty and complexity: This is an example of system behavior (during a particular scenario, etc.) that is a surprise to the engineers of the system. To respond to failure they put a mitigation in place (a patch) that the felt was safe as the have protections they believed would ensure the correct version was picked up, as the "believed skipping these overrides and verifications to be impossible". However, their "investigation uncovered what we thought was an impossible situation", at least "prior to this" incident. Perhaps an interesting example of complexity and emergent behavior, only discovered because of the particulars of the incident. AI-1, AI-2 and AI-5 all aim to provide "further safeguards to our process" to prevent this surprising behavior.
+    - The opportunity of novelty: Considered impossible previously
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [Many servers crashed during rollout of hotfix, were manually restarted and did NOT pick up the patch fixing a previous defect...] We have verification systems that detect these sorts of version misconfigurations, but the crashes and subsequent manual restarts caused the servers to also skip the verification process [...] We have added further safeguards to our process for “hot-patching” our servers to ensure that they cannot start with an unexpected version.
+
+    motivation:
+      experience: During deployment, servers crashed and when manually restarted they did not start with the correct version because of a defect
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (restarting servers do not pick up correct version)
+        - manual action (patch)
+        - deployment (of hot patch which caused crash and activated subsequent defect for picking up correct version)
+      iso:
+        - Faultlessness
+        - Modifiability
+
+    item:
+      action: Add additional safeguards (VAGUE)
+      target: Deployment process for hot-patches and start up
+      goal: Prevent restart with "unexpected version"
+
+      action-type:
+        - evo / add
+      target-type:
+        - Deployment / Startup
+      sts:
+        - Process / Deployment procedures # This may be Tech / * if process refers to the deployment mechanisms rather than a procedure as we are considering the other procedures
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective (code & configuration) version checks on start up (safeguards) 
+      activity: add safeguards
+      level: component
+
+    memos:
+      - Risk: These are ADDITIONAL safeguards because the previous ones failed
+      - Defense-In-Depth: (AI-1) Multiple safeguards, though not specified
+      - Improving-Understanding: Unexpected event
+
+  AI-2:
+    # A small percentage (less than 1 percent) of these servers would crash on start-up due to the volume of servers overwhelming one of the backing databases [...] We have fixed the issue that caused a small fraction of WorldServers to crash on startup. This fix will be deployed with Season 10.
+
+    motivation:
+      experience: A small percent of servers crashed on deploy and start-up
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (following a deploy servers crashed on startup, known well in advance, sends high load to backing database)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix issue caused by large volume of server starting up (VAGUE)
+      target: Game play service (worldserver) startup
+      goal: Prevent server crashes on restart of fleet
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Flexibility / Scalability
+        - Reliability / Faultlessness (on startup)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix known crash on startup (VAGUE)
+      activity: fix, deploy
+      level: component
+
+    themes:
+      - known defect
+
+    memos:
+      # Our workaround for this was to simply manually restart the crashed servers each time we detected this issue, and this appeared to address the problem without any discernible side effects for players.
+      - Known and tolerated: A KNOWN issue that was being tolerated contributed to incident. Up until the incident they had simply restarted the servers when this occurred ("our workaround for this was to simply manually restart the crashed servers each time we detected this issue"). It was tolerated because it did not have "any discernible side effects for" users. The failure finally prompted them to fix it.
+
+  AI-3:
+    # [Previous temporary fix was a patch that was not picked up after restart of servers...] The permanent fix for character corruption will be rolled into the next update as an executable change, removing the need for the configuration override.
+
+    motivation:
+      experience: A temporary patch was deployed (involved in the crash)
+      lifecycle:
+        - Failure / Inception # Seems initially unrelated, but is the patch involved in the trigger though not the trigger itself
+      tags:
+        - deployment (of patch to fix defect)
+        - defect (patch to fix corruption of data upon login)
+        - opportunistic 
+      iso:
+        - Faultlessness
+
+    item:
+      action: Deploy permanent (executable) fix & remove temp (config) fix
+      target: Game play service (worldserver) source
+      goal: Remove need for temporary fix
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Operational constraint
+        - Reliability / Faultlessness (data integrity permanent fix)
+      temporal: new
+      google-ai:
+        - prevent #/ replace temporary fix with permanent
+
+    other:
+      modification: Fix data corruption regression (introduced x2)
+      activity: deploy, replace temporary fix
+      level: component
+
+    memos:
+      - Known-Issue: Again a KNOWN issue (temporarily fixed) contributed to incident
+      - First-Fast-Then-Better: (Right) Temporary fix leading to permanent fix
+
+      # (Unfortunately the 2.7.1.1 Hotfix was too far along to benefit from this).
+      - Temporary: This is a permanent fix needed to wait for right moment in release schedule. They probably knew the hotfix was temporary
+
+  AI-4:
+    # [Rollout of hotfix triggered the event and the response required rolling back system state] Looking ahead, we are investigating ways to speed up our rollback and recovery mechanisms.
+
+    motivation:
+      experience: Deployment of a hot-patch and subsequent failure required rolling back system state
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - defect (restarting servers do not pick up correct version)
+        - manual action (patch)
+        - deployment (of hot patch which caused crash and activated subsequent defect for picking up correct version)
+        - delayed mitigation (complicated rollback)
+        - rollback action required
+      iso:
+        - Faultlessness
+        - Recoverability
+
+    item:
+      action: Investigate options for speeding up operation
+      target: Incident response mechanisms for rollback and recovery
+      goal: Speed up incident response mechanisms
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Incident response / Rollback and recovery mechanisms
+      intended-effect:
+        - Reliability / Recoverability (timely)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Staging (rollback & recovery) mechanisms (VAGUE)
+      activity: investigate options
+      level: component
+
+    memos:
+      - Improving-Understanding: Investigation required
+
+  AI-5:
+    # [Crash and manual restart caused the servers to skip loading the configuration and] also skip the verification process [...] This meant that a small percentage of WorldServers were running the old code and the bug that was corrupting character data [...] In a future release, we will address the issue that can cause servers to skip loading configuration data.
+
+    motivation:
+      experience: During deployment, servers crashed and when manually restarted they did not start with the correct version because of a defect
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (restarting servers do not pick up correct version)
+        - manual action (patch)
+        - deployment (of hot patch which caused crash and activated subsequent defect for picking up correct version)
+      iso:
+        - Faultlessness
+        - Modifiability
+
+    item:
+      action: Fix defect with loading configuration
+      target: Deployment process for hot-patches and start up
+      goal: Prevent restart with "unexpected version"
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Deployment / Startup
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Fix configuration loading defect
+
+    memos:
+      - Improving-Understanding: Goal is to constrain unexpected behavior from occurring again
+
+  AI-6:
+    # Several months ago, players reported that quest log sorting wasn’t working properly, and we wanted to fix that [...] That fix was conceptually reasonable but, through subtle side effects, it ended up disabling too much of the clean-up process [...] We will also add more protections to the login-account clean-up code, to help prevent future bugs from being introduced into such a critical area.
+
+    motivation:
+      experience: Earlier patch disabled clean-up process
+      lifecycle:
+        - Pre-incident # [TODO] Check
+      tags:
+        - defect (disabled too much of the clean-up process)
+      iso:
+        - Modifiability
+        - Faultlessness
+
+    item:
+      action: Add more protections (VAGUE)
+      target: Game play service (worldserver) source ("critical area")
+      goal: Prevent future bugs from being introduced
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Maintainability / Modifiability (prevent new bugs)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective mechanism around critical code
+      level: component
+
+    memos:
+      - Risk: Again we are adding MORE protection because the previous protections failed
+      - Similar: Locality, Future bugs are similar to the defect that is part of the event and also in the login area
+
+  AI-7:
+    # [Continuing from above the change was missed despite ...] (1) we had two domain experts provide code reviews for the change – but sadly, we didn’t spot the bug (2) we do comprehensive stress testing to try and model user behavior and its impact on our service architecture. (3) we also have our test teams log in with a number of test accounts in order to verify the player experience [they] gave the all clear. (4) Because there’s no substitute for millions of real player behaviors, we supplement this testing by closely monitoring service metrics after launch. We are updating our development methodologies to catch issues like this earlier in the release pipeline.
+
+    motivation:
+      experience: Earlier patch disabled clean-up process, despite two domain experts provide code reviews for the change
+      lifecycle:
+        - Pre-incident
+      tags:
+        - opportunistic
+        - defect (disabled too much of the clean-up process)
+        - human factors (mistake)
+      iso:
+        - Modifiability
+        - Faultlessness
+
+    item:
+      action: Update methodologies (VAGUE)
+      target: Development practices (possibly end to end)
+      goal: Catch issues like this earlier in the release pipeline
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - SDLC / Development
+      sts:
+        - Process / Development methodology
+      intended-effect:
+        - Reliability / Faultlessness (catch early)
+      temporal: new
+      google-ai:
+        - prevent #/ catch before software release
+
+    other:
+      modification: Formalize (update) development methodologies (VAGUE)
+
+    memos:
+      - Subtle side effects missed in dev, review and testing learned from incident
+      - Verification activities & relationship between testing & monitoring (limits)
+      - Issue evaded code review, patch configuration, verification, spot testing ("standard practices of verifying a new build")
+ 

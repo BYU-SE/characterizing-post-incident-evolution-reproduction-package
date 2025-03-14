@@ -1,0 +1,260 @@
+#
+# 35.yaml | GitHub
+# https://github.com/blog/2101-update-on-1-28-service-outage
+# https://github.blog/news-insights/company-news/january-28th-incident-report/
+#
+# 
+#
+# Researcher Notes:
+#
+
+IR-35:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+
+    # Over the past week, we have devoted significant time and effort towards understanding the nature of the cascading failure which led to GitHub being unavailable for over two hours.
+    - Takes weeks to understand nature of failure
+
+    # We don’t believe it is possible to fully prevent the events that resulted in a large part of our infrastructure losing power, but we can take steps to ensure recovery occurs in a fast and reliable manner. We can also take steps to mitigate the negative impact of these events on our users.
+    - Unpreventable events, but they can focus on recovery
+
+    # Ultimately, if these systems are required to recover from an unexpected outage situation, they must be as reliable as the system being recovered.
+    - Reliability of system is only as good as the reliability of its support systems
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # We identified the hardware issue resulting in servers being unable to view their own drives after power-cycling as a known firmware issue that we are updating across our fleet. [.. AI-2 ..]
+
+    motivation:
+      experience: A class of drives were unable to restart after experiencing a brief disruption in power due to a known firmware issue (but not patched)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power disruption)
+        - defect (firmware issue, which they had not updated against)
+        - hardware class (affected)
+      iso:
+        - Faultlessness
+        - Recoverability
+
+    item:
+      action: Updating the firmware
+      target: Data center hardware
+      goal: Remove defect to ensure drives can restart after power failure
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Infrastructure / Compute equipment
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Recoverability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-2:
+    # [We are ...] Updating our tooling to automatically open issues for the team when new firmware updates are available will force us to review the changelogs against our environment.
+
+    motivation:
+      experience: A class of drives were unable to restart after experiencing a brief disruption in power, due to a firmware defect which been missed.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power disruption)
+        - defect (firmware issue, which they had not updated against)
+      iso:
+        - Faultlessness
+        - Recoverability
+
+    item:
+      action: Automatically create issues when firmware updates are available
+      target: Data center hardware
+      goal: Force review of the changelogs against their environment for safety reasons
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Infrastructure / Compute equipment
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Recoverability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    themes:
+      - automation / raise maintenance ticket
+
+  AI-3:
+    # We had inadvertently added a hard dependency on our Redis cluster being available within the boot path of our application code. [..] We will be updating our application’s test suite to explicitly ensure that our application processes start even when certain external systems are unavailable and [.. AI-4 ..]. Obviously there are limits to this approach and there exists a minimum set of requirements needed to serve requests, but we can be more aggressive in paring down the list of these dependencies.
+
+    motivation:
+      experience: They had inadvertently added a hard dependency in the start processes and it made mitigation challenging
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - dependency (start up)
+      iso:
+        - Recoverability
+
+    item:
+      action: Include tests for dependency unavailability
+      target: Test suite for application
+      goal: Ensure applications are known to be able to boot without certain external system availability
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-4:
+    # We had inadvertently added a hard dependency on our Redis cluster being available within the boot path of our application code. [..] [.. AI-3 ..] and we are improving our circuit breakers so we can gracefully degrade functionality when these backend services are down. Obviously there are limits to this approach and there exists a minimum set of requirements needed to serve requests, but we can be more aggressive in paring down the list of these dependencies.
+
+    motivation:
+      experience: They had inadvertently added a hard dependency in the start processes and it made mitigation challenging
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - dependency (start up)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve (VAGUE)
+      target: Circuit breakers in apps for backend services
+      goal: Apps gracefully degrade functionality when dependencies are down
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-5:
+    # We are reviewing the availability requirements of our internal systems that are responsible for crucial operations tasks such as provisioning new servers so that they are on-par with our user facing systems. Ultimately, if these systems are required to recover from an unexpected outage situation, they must be as reliable as the system being recovered.
+
+    motivation:
+      experience: Critical operations systems were offline as part of the incident
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - unavailability (of operational systems)
+      iso:
+        - Recoverability
+
+    item:
+      action: Review availability requirements
+      target: Internal operations systems (provisioning systems)
+      goal: Ensure support systems are as reliable as the systems they support
+
+      action-type:
+        - formative / check # or audit
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-6:
+    # A number of less technical improvements are also being implemented. Strengthening our cross-team communications would have shaved minutes off the recovery time.
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Strengthen cross-team communications (VAGUE)
+      target: Engineering teams communication
+      goal: Recover much faster
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Other
+      sts:
+        - People
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-7:
+    # A number of less technical improvements are also being implemented. Predefining escalation strategies during situations that require all hands on deck would have enabled our incident coordinators to spend more time managing recovery efforts and less time navigating documentation.
+
+    motivation:
+      experience: UNCLEAR (related to navigating documentation)
+
+    item:
+      action: Predefine escalation strategies during all hands on deck situations
+      target: Incident response procedures
+      goal: Better allocate time to manage incident rather than navigating documentation
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Detection (paging)
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-8:
+    # A number of less technical improvements are also being implemented. Improving our messaging to you during this event would have helped you better understand what was happening and set expectations about when you could expect future updates.
+
+    motivation:
+      experience: UNCLEAR (related to customer communication)
+
+    item:
+      action: Improve (VAGUE)
+      target: Customer communication during incident
+      goal: Help customers understand what was happening and set expectations for future updates
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process
+      sts:
+        - Process / Customer communication
+      intended-effect:
+        - Interaction Capability / User assistance (in real-time)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    memo:
+      Commitment: This is written in a different tense, so the commitment is unclear if they will actually do it

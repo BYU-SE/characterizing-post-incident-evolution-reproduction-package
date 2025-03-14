@@ -1,0 +1,337 @@
+#
+# 69.yaml | Wikimedia Foundation
+# https://wikitech.wikimedia.org/wiki/Incidents/2021-07-26_ruwikinews_DynamicPageList
+# An importing process caused many pages to be rebuilt, which involved an expensive query (which is not normally expensive). The expensive query was slow, blocking other queries from running and eventually leading to an outage where many requests were slow or had errors.
+#
+# Event July 26, 2021
+#
+# Researcher Notes:
+#
+
+IR-69:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # High-level discussion and brainstorming is happening in T287380: Decide on the future of DPL. Out of that, some specific actionables have been identified:
+    - Incident analysis is on-going and a stream of discussion, some actions have been identified (which may differ from selected)
+  
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1: 
+    # A query became slow all of the sudden, and was executing on many databases, slowing them all down. They have a dedicated database group for slower queries so they don't bog down the rest. 708390 Send queries to "vslow" database group
+
+    motivation:
+      experience: Data import changed perf characteristics of query and it was running on many databases.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import)
+        - data import (changes performance characteristics of query)
+      iso:
+        - Time behavior
+
+    item:
+      action: Send DPL queries to the slow database group
+      target: Database query configuration
+      goal: Ensure newly slow query doesn't affect all databases
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (at resource level)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      completed: true
+      timing: done / next day # July 27, 2021
+      qa-category: contain failure (avoiding slowing down everything)
+
+    themes:
+      - decoupling by adding dedicated resource (for slow queries)
+
+  AI-2: 
+    # DPL is a known "trouble maker", and they are considering its future. T287916 Disable DPL on wikis that aren't using it
+
+    motivation:
+      experience: Data import changed perf characteristics of query and it was running on many databases.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import)
+        - data import (changes performance characteristics of query)
+      iso:
+        - Time behavior
+
+    item:
+      action: Disable DPL on wikis that do not use it
+      target: DPL wiki extension configuration
+      goal: Limit the future addition and use of DPL
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Disable feature when not in use
+      completed: true
+      timing: done / in 4 months # Nov 22, 2021
+      qa-category: contain failure (limit use of DPL)
+
+    themes:
+      - stop until safe to restart (if ever)
+
+  AI-3: 
+    # DPL queries can run many at the same time and since they take so long, they are not cached. T263220 Limit concurrency of DPL queries
+
+    motivation:
+      experience: Data import changed perf characteristics of query and it was running on many databases. The response could not be cached since the queries would take so long to run.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import)
+        - data import (changes performance characteristics of query)
+        - cache (unable to)
+      iso:
+        - Time behavior
+
+    item:
+      action: Limit concurrency of DPL queries
+      target: DPL wiki extension query configuration
+      goal: Ensure DPL query can't take down all the databases
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Adjust concurrency limits
+      completed: stalled
+      timing: started previously / abandoned ("Not pursuing this anymore")
+      qa-category: keep within range (concurrent resource use)
+
+    themes:
+      - missed opportunity
+
+  AI-4: 
+    # T287983 Raw "upstream connect error or disconnect/reset before headers. reset reason: overflow" error message shown to users during outage
+
+    motivation:
+      experience: Error message was shown to users (which was not supposed to be shown)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - defect (showing error message to users)
+        - propagation (error message to dependents via hard dependency)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Fix raw error message being passed along
+      target: Web app error handling mechanism across (disparate components)
+      goal: Ensure correct error message is shown
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      completed: stalled
+      timing: done / 1.5 years later ("Resolved")
+      qa-category: visibility for end users
+
+  AI-5: 
+    # [Investigation revealed that googlenewssitemap does similar queries.] T288180 Investigate Extension:GoogleNewsSitemap query performance
+
+    motivation:
+      experience: Data import changed perf characteristics of query and it was running on many databases. The response could not be cached since the queries would take so long to run, changing its perf characteristics even more
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import)
+        - risk of outage (similar expensive queries)
+      iso:
+        - Time behavior
+
+    item:
+      action: Investigate query performance for a plugin
+      target: Service plugin that creates RSS
+      goal: Check worst case performance for queries and if there are additional preventative measures needed
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Operational constraint
+        - Performance Efficiency / Time behavior
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      completed: in progress # but marked as resolved in the actual link
+      timing: done / in 2 weeks ("resolved")
+      qa-category: keep within range
+
+    themes:
+      - what else might go wrong
+  
+  AI-6: 
+    # [Investigation revealed that googlenewssitemap does similar queries.] T288227 Add concurrency limiting to GoogleNewsSitemap using PoolCounter
+
+    motivation:
+      experience: Data import changed perf characteristics of query and it was running on many databases. The response could not be cached since the queries would take so long to run, changing its perf characteristics even more
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import)
+        - risk of outage (similar expensive queries)
+      iso:
+        - Time behavior
+
+    item:
+      action: Limit concurrency of query for a plugin
+      target: Service plugin that creates RSS
+      goal: Remove triggering and contributing factors that have already been fixed
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Adjust concurrency limits
+      timing: started previously / abandoned (as of 2024 at least)
+      qa-category: keep within range (concurrency limit)
+
+    themes:
+      - tradeoffs (cap concurrency)
+      - missed opportunity
+
+  AI-7: 
+    # Maybe it would be cool if job runners slow down if a DB overload is detected
+
+    motivation:
+      experience: Database was overloaded from really slow and expensive query
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - overloaded database
+      iso:
+        - Capacity
+
+    item:
+      action: Slow down job runners if DB is overloaded
+      target: Job runner configuration
+      goal: Prevent overload from getting worse and being extended
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Other
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: no plan ("maybe ...")
+      qa-category: keep within range (concurrency limit)
+
+    themes:
+      - tradeoffs (slow down under load)
+
+    memos:
+      - Commitment: Wishy-washy language "maybe it would be cool if"
+
+  AI-8: 
+    # Consider removing ordermethod=created as an unnecessary footgun
+
+    motivation:
+      experience: Data import changed perf characteristics of query, especially with this particular parameter, and it was running on many databases.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - slow operation (query, perf change after data import, method parameter is expensive to compute)
+      iso:
+        - Time behavior
+  
+    item:
+      action: Remove a configuration option which is less efficient
+      target: DPL wiki extension query configuration
+      goal: Remove less efficient configuration setting from the extension
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      timing: no plan ("consider ...")
+      qa-category: UNCLEAR
+
+    memos:
+      - Commitment: Wishy-washy language "consider..."

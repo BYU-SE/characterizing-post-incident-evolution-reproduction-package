@@ -1,0 +1,169 @@
+#
+# 8.yaml | Zalando
+# https://github.com/zalando-incubator/kubernetes-on-aws/blob/dev/docs/postmortems/jan-2019-dns-outage.md
+#
+# Timeouts from a downstream service (fronted by an aggregation layer) lead to client retries, increasing RPS for the aggregation layer and the Kubernetes cluster DNS infrastructure. The spike in DNS queries led to OOM errors on the "CoreDNS pods" which killed them. They could not recover ("kept running out of memory and getting killed") leading to a total DNS outage for the entire cluster.
+#
+# Researcher Notes:
+#
+
+IR-8:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # Also see LL title
+    - AI-Section-Title: Section called "Action Items"
+    - LL-Section-Title: Section called "Lessons Learned"
+    - has both PAs and LL sections
+
+    # While we consider the DNS infrastructure to be the biggest factor in this incident, there were a number of contributing factors which [led] to the impact: There was a sudden spike in requests to the aggregation layer service because calls to a single, not so important, downstream service were timing out and calls were being retried [...]
+
+    - Why not cover all contributing factors (trigger, limit, ...) with LLs and PAs?
+    - Analytic idea may be to look for connections between factors (F), LLs and PAs (LFI)
+
+    - They are not just considering a single root cause in their lessons and actions
+    - Single-Point-Of-Failure: Downstream service was timing out
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [Non optimal DNS infrastructure across the system ...] (1) The aggregation layer service [...] doesn’t cache any DNS lookups [...] (2) The application [sends] 10 DNS queries for every single DNS lookup of an cluster-external name [... 5 problem in Kubernetes] (3) Short maximum lifetime for all connections [and so] a larger number of DNS requests due to constantly opening new connections to downstream dependencies. (4) CoreDNS pods were configured with a very small memory limit of 100Mi based on historical resource usage data. Introduce a more resilient DNS infrastructure. We are working on a solution where we will run CoreDNS fronted by dnsmasq on every node. This setup outperforms any other setup we have considered and tested. We will share a longer write-up of this, once we have some more experience with the new setup.
+
+    motivation:
+      experience: A spike in requests when downstream service timed out and retried, also led to a spike in DNS queries with x10 amplification, resulting in the DNS infrastructure OOM and getting killed and total DNS outage.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (timeouts and retries spike, amplification)
+        - limit hit (memory, crash, small limit configured)
+      iso:
+        - Faultlessness
+        - Capacity
+      
+    item:
+      action: Add new subsystem for DNS caching ("dnsmasq")
+      target: Cache for DNS on every app node (new)
+      goal: "More resilient DNS infrastructure"
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+        - Reliability / Faultlessness (avoid activating defect)
+      temporal: new
+      google-ai:
+        - prevent
+      
+    other:
+      modification: Remodel DNS system around caching subsystem
+      level: system
+      timing: started / testing ("we are working on ...")
+      qa-category: keep within range (resilience through a protective cache)
+
+    themes:
+      - provisional / best option "considered and tested" so far
+      - decouple / add caching
+
+    memos:
+      # Outperforms any other setup we have considered and tested
+      - In some cases the AI is to do research, here that research is already done
+      - Maybe change is provisional (iterative architectural decision making)
+
+  AI-2:
+    # As a side effect of the DNS outage our internal monitoring for the cluster was also completely down as it needs to talk to external services to trigger alerts and push metrics [...] Improve high level alerting from outside of clusters. We should know that there is something wrong with the cluster before, or at least at the same time as applications in the clusters start to be affected.
+
+    motivation:
+      experience: Internal monitoring for cluster failed when the DNS outage occurred, delaying notifying the on-call engineer.
+      lifecycle:
+        - Response / Detection
+      tags:
+        - delayed detection (internal monitoring failed, notification was delayed)
+      iso:
+        - Recoverability
+
+    item:
+      action: UNKNOWN (maybe add external monitoring and alarming)
+      target: Monitoring and alarming infrastructure (external)
+      goal: "Improve high level alerting from outside of clusters"
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability (timeliness)
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - detect #/ alerting (make it work even during an incident)
+
+    other:
+      modification: Alarm on (externally measured) failure
+      level: component interactions
+      timing: future
+      qa-category: visibility / monitor EXTERNALLY 
+    
+    themes:
+      - tradeoffs (internal vs. external monitoring)
+      - decouple metrics from cluster
+      - continue to function during incident ...
+
+    memos:
+      - Tradeoff between internal (detailed) and external monitoring (decoupled)
+      - Distinction between external vs internal monitoring support is important!
+      - Notification goal is "before or at least at the same time as ..."
+
+  AI-3:
+    # The on-call engineer for the aggregation layer service had to call the Kubernetes responsible on-call engineer instead of the automatic paging we normally rely on [...] Improve incident response processes and tooling. It can happen that automatic paging fails for whatever reason. In this case it should be simple for any on-call engineers to escalate directly to other teams without going to a different tool. One idea we are pursuing is to simplify the escalation process via a chat bot.
+
+    motivation:
+      experience: The on-call engineer (for another service) had to manually page the responsible engineer since the monitoring was impacted by the DNS outage
+      lifecycle:
+        - Response / Triage
+      tags:
+        - delayed triage (on-call indirection)
+        - on-call indirection
+        - automation failure
+      iso:
+        - Recoverability
+
+    item:
+      action: Add tool to make escalating (notifying) simple for on-call
+      target: Alarming and paging tooling (escalation process)
+      goal: Quick and easy escalation to responsible parties
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Detection (paging)
+      sts:
+        - Process / Incident response / Escalation process
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / Operability (access to expertise)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Manual response tool & process (chat bot idea)
+      activity: perusing idea
+      timing: started / ideation ("one idea we are pursuing")
+      qa-category: recovering to safe range
+
+    themes:
+      - ideation stage ("one idea")
+      - what vs how (improve escalation vs. chat bot)

@@ -1,0 +1,188 @@
+#
+# 50.yaml | GoCardless
+# https://gocardless.com/blog/incident-review-api-and-dashboard-outage-on-10th-october/
+#
+# A hardware failure on the primary database node, combined with some unusual circumstances prevented database cluster automation from promoting a replica to be the new primary.
+# 
+#
+# Researcher Notes:
+#
+# The narrative in this IR makes it hard to reliably determine what to consider AIs and what just happened to be work as part of the larger 2 AIs (migrate to new DB cluster, replicate incident)
+#
+IR-50:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    - Several wishy-washy ones where "this is what we could do"
+
+    # It's easy to say "just write a runbook", but if multiple years go by before you next need it, it's almost guaranteed to be out-of-date.
+    - Learnings from past incidents?
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+
+    # [Manual intervention was done during the incident to promote a new primary, changing configurations, modes, etc.] During that discussion, we decided that we'd taken too much manual intervention on our existing database cluster to be confident in bringing back the Pacemaker automation there. We decided that we'd provision a new cluster, replicate data into it, and switch traffic over.
+
+    motivation:
+      experience: During the incident, they manually promoted a new primary (many attempts) by changing configuration and settings
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - missing operation
+        - manual action (consequences of performing action on production environment is that it deviates from version control/known settings)
+      iso:
+        - Operability
+        - Faultlessness
+
+    item:
+      action: Provision a new replacement cluster with replicated data for manually altered cluster
+      target: Database cluster
+      goal: Remove database which has deviated from versioned configuration which is well-suited for their automation
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Fail safe (restore fallback ability)
+      temporal: new
+      google-ai:
+        - repair
+
+    other:
+      modification: Replace component (with version controlled)
+      level: component
+
+    themes:
+      - half-recovered state (recovering further)
+      - automation broken by (half) recovery
+
+    memos:
+      - In a way, this is repairing damage done during the incident (deviation from a known database that automation works with to an database which may not play well with automation). They are willing to return to a version of the DB which was part of the incident than try after their own fixes.
+      - Restoring-Trust: They lost trust during mitigation (database deviated from original) and this AI is designed to restore it
+
+  AI-2:
+    # We split up into two subteams - one trying to reproduce the failure, and the other [..AI-1..].
+
+    motivation:
+      experience: UNCLEAR (a failure occurred?)
+    
+    item:
+      action: Reproduce the failure
+      target: UNCLEAR
+      goal: Understand the failure and failure conditions better
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Data stores / Clustering and replication
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Safety / Fail safe (figure out promotion failure)
+      temporal: new
+      google-ai:
+        - investigate #/ improve understanding of failure and conditions
+      # [TODO] iso
+    
+    other:
+      activity: reproduce (one off testing)
+
+  # Unrelatedly, but conveniently, we're about to move away from using VIPs to direct traffic to specific Postgres instances. Instead we'll be running proxies on the application servers that direct traffic to the right node based on the state of the cluster. This will drastically reduce the number of resources managed by Pacemaker, in turn reducing the potential for weird behavior in the cluster.
+
+  # exclude: Not an AI from this incident. It is unrelated work which applies to the lesson they learned.
+
+  AI-3:
+    # A misconfiguration that only surfaces when two processes crash at almost the same time isn't one that you're going to find through basic tests or day-to-day operations. We've done some fault injection as part of our game day exercises, but there's always more you can do in that area. Harsher tests of the Postgres cluster, and automation like Chaos Monkey that continually injects failure are both ideas we're keen to pursue.
+
+    motivation:
+      experience: Coincident crashes of 2 subprocesses (unknown reason) surfaced a (seemingly simple) pacemaker misconfiguration (defect)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (misconfiguration of pacemaker, only activated when two processes crash at same time)
+        - tests (did not catch, might not be able to catch due to complex conditions)
+        - human factors (misunderstanding of configuration)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Improve testing (VAGUE) perhaps through harsher tests or continual failure injection
+      target: Testing practices
+      goal: Surface misconfigurations which can lead to incidents
+
+      action-type:
+        - evo / add # more of the same
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Process / Testing practices
+      intended-effect:
+        - Reliability / Faultlessness (well-tested)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Tests under harsher conditions (chaos)
+      activity: automate failure injection
+      level: component (subsystem)
+
+    memos:
+      - Potential AI, may be different from what is actually done
+      - Difference between potential work, planned work, and actual work.
+      - Commitment: Wishy-washy language with "ideas we're keen to pursue"
+
+  AI-4:
+    # It turns out that when your automation successfully handles failures for two years, your skills in manually controlling the infrastructure below it atrophy. There's no "one size fits all" here. It's easy to say "just write a runbook", but if multiple years go by before you next need it, it's almost guaranteed to be out-of-date. There are definitely ways to combat this. One possibility we're thinking of is adding arbitrary restrictions to some of our game day exercises (e.g. "this cluster is down, the automation has failed, you can't diagnose the problem, and need to bring the service back another way").  
+
+    motivation:
+      experience: During the incident, they manually promoted a new primary (many attempts) by changing configuration and settings
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - missing operation
+        - manual action (consequences of performing action on production environment is that it deviates from version control/known settings)
+        - human factors (knowledge erodes over time, training)
+      iso:
+        - Operability
+        - Faultlessness
+
+    item:
+      action: Add arbitrary restrictions to game day exercise for debugging
+      target: Incident response (game days with limited automation)
+      goal: Improve the way failures are handled, both automated and by humans
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Preparation
+      sts:
+        - Process / Incident response training
+      intended-effect:
+        - Interaction Capability / Operability (operational knowledge & training)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Formalize (impose) restrictions during game day exercises
+
+    memos:
+      - Potential AI, may be different from what is actually done
+      - Difference between potential work, planned work, and actual work.
+      - Commitment: Wishy-washy language with "One possibility we're thinking of is..."

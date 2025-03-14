@@ -1,0 +1,169 @@
+#
+# 31.yaml | Honeycomb
+# https://www.honeycomb.io/blog/incident-report-running-dry-on-memory-without-noticing/
+#
+# Telemetry data ingestion processes ran out of memory, and alerting didn't prompt an incident response. A haphazard response to the SLO alerts occurred (blaming 3rd parties, not waking up, not declaring an incident) until an engineer noticed it was a leak and fixed the issue.
+#
+#
+# Researcher Notes:
+#
+
+IR-31:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Incident-Life-Cycle / Responder options:
+      - AI-1 detecting and diagnosing
+      - AI-2 preserving information (for diagnosing)
+      - AI-3 reacting more quickly (calling an incident)
+
+  memos:
+  - AI-Section-Title: Section called "What will we do to address these issues?"
+
+  # Ultimately, the main changes we need to make are to our incident process rather than technical ones. We should ...
+  - Similar | Framing the work: They are less focused on preventing the incident which they see as impossible "it is impossible to prevent every memory leak, therefore our technical fixes are primarily focused around detection and mitigation". They see the problem as having taken "several hours to identify the issue and resolve it". So the AIs are about what happens when a similar failure scenario reoccurs (which they are sure it will), "rather then technical ones" that may aim to prevent a similar failure.
+
+  - Iterating on tradeoffs: Each of these AIs are about adjusting the tradeoffs based on the experience, and they are open to further adjustments as they gain experience with their choice. For AI-1 the tradeoff is about making something an alarm or just a diagnostic message; AI-2 is about what to do in the event of an OOM (crash or not, in order to maintain telemetry); AI-3 is about when to declare an incident, and they will adjust this again "when we find we're spending too much engineer time responding to non-incidents, we will move the pendulum back a bit, and continue to iterate." This is one reason AIs are lacking some concrete plans, as they consider the right balance.
+
+  # As always, we're sharing our process and outcomes so everyone can learn from our experiences.
+  - $1M question is, can anyone learn from this experience and what?
+
+  ######################################
+  # AIs
+  ######################################
+
+  # 
+  # It is impossible to prevent every memory leak; therefore our technical fixes are primarily focused around detection and mitigation.
+  # 
+
+  AI-1:
+    # A high process crash (panic/OOM) rate is clearly abnormal in the system and that information should be displayed to people debugging issues, even if it is one of many potential causes rather than a symptom of user pain. Thus, it should be made a diagnostic message rather than a paging alert.
+
+    motivation:
+      experience: Confirmation bias and crash information not being sent to responders delayed RCA
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - delayed RCA (confirmation bias and missing diagnostic messages)
+        - human factors (confirmation bias)
+        - missing diagnostic message
+      iso:
+        - Recoverability
+
+    item:
+      action: Show additional (non user facing) diagnostic (OOM) information
+      target: Alarming and monitoring system
+      goal: Speed up diagnosis, avoid "confirmation bias", challenge assumptions
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - mitigate future #/ diagnosis
+
+    other:
+      modification: Remove alarm, add diagnostic message
+      level: component
+
+
+  AI-2:
+    # The trigger of the incident was a slow memory leak that manifested over hours, which leaked at the same rate on each ingest backend [causing OOM crashes and loss of data] And rather than outright crash and thereby lose internal telemetry, we will consider adding backpressure (returning an unhealthy status code) to incoming requests when we are resource constrained to keep the telemetry with that vital data flowing if we're tight on resources. 
+
+    motivation:
+      experience: Telemetry data was lost when a memory leak resulted in OOM and a crash.
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - delayed RCA (telemetry data lost)
+        - data (lost telemetry data on crash)
+        - defect (memory leak led to OOM crash)
+        - limit hit (memory, led to crash)
+      iso:
+        - Recoverability
+
+    item:
+      action: Add backpressure as alternative to crashing (OOM) under scarcity
+      target: Backend ingest endpoints & dependents (error responses)
+      goal: Maintain telemetry data (otherwise lost on crash) to aid with diagnosis
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Maintainability / Analysability (preserve telemetry)
+        - Flexibility / Scalability (backpressure)
+      temporal: new
+      google-ai:
+        - mitigate future #/ diagnosis (and needed data)
+
+    other:
+      modification: Protective backpressure mechanism (ensuring telemetry)
+      activity: consider, discussion
+      level: component (interactions)
+
+    themes:
+      - tradeoffs (crashing under scarcity versus backpressure)
+      - wishy-washy
+      - keep telemetry
+
+    memos:
+      # In this situation, it would have resulted in dropping more incoming traffic, but with the benefit of immediately getting the data we needed to diagnose the issue. Obviously, this is not an easy decision to make, and requires more discussion.
+      - Why more discussion is needed (post post mortem) which is INTERESTING
+      - Commitment: Wishy-washy language used with "consider"
+
+  AI-3:
+    # Ultimately, the main changes we need to make are to our incident process rather than technical ones. We should be more willing to believe SLO burn alerts, more willing to declare incidents, and more willing to investigate/question assumptions. We're taking this as a lesson that consistency matters, and we'd rather err on the side of declaring an unnecessary incident than fail to declare an incident and act haphazardly. We're promoting our user-facing SLO alerts to actually page oncall the same way our end-to-end blackbox probers do. 
+
+    motivation:
+      experience: Unwillingness to believe SLO burn alerts, declare incidents, and investigate or question assumptions led to extended recovery
+      lifecycle:
+        - Response / Triage
+      tags:
+        - delayed RCA (unwillingness to believe alerts, declare incidents, investigate and question assumptions)
+        - human factors (confirmation bias, unwillingness to believe alerts, unwillingness to declare incidents)
+      iso:
+        - Recoverability
+
+    item:
+      action: Promote certain user-facing alerts (SLOs) to page oncall
+      target: Alarming and monitoring system
+      goal: More quickly begin incident response & so act less haphazardly
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning (triage)
+      temporal: new
+      google-ai:
+        - mitigate future #/ incident response initiating
+
+    other:
+      modification: Alarm (on-call page) on Service Level Objective (SLO)
+      level: component
+
+    themes:
+      - tradeoffs
+
+    memos:
+      # We should be more willing to believe SLO burn alerts, more willing to declare incidents, and more willing to investigate/question assumptions.
+      - Seems to deal with trust of their own systems, and willingness to do work
+
+

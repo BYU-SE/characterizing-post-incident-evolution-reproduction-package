@@ -1,0 +1,479 @@
+#
+# 74.yaml | Mozilla
+# VOID: https://hacks.mozilla.org/2019/07/add-ons-outage-post-mortem-result/
+# Other: https://wiki.mozilla.org/Add-ons/Expired-Certificate
+# Technical: https://wiki.mozilla.org/Add-ons/Expired-Certificate-Technical-Report
+#
+# Decision: We are basing our AIs on the 2nd of these pages because it has a table of next steps.
+
+IR-74:
+
+  extractedBy: JS
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # At a high level, we suggest a focus on the following areas. This fuller remediation does have a deadline; the newly created intermediate certificate that resolved this incident is set to expire in 2025.
+    - Effects of mitigation, requires action
+
+    # Of course, defects in software cannot be completely eliminated
+    - Mentality that defects will always exist
+  
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1: 
+    # Tuning our Incident Command Process by looking at some of the following areas to create a more structured playbook:
+    # Crisis levels and descriptions.
+    # Phone numbers, back-ups and contact protocols.
+    # Clear owners and roles.
+    # Clear processes for incident kickoff, handoffs and documentation.
+    # Template support responses that can be customized for each situation.
+    # Documented safety response procedures.
+    # Protocols to ensure we have things like passwords for social media accounts.
+    # What are all the blogs and communication channels we have and when to use them.
+
+    # Obviously could be more that one AI (but I'm going with "create a more structured playbook" as the AI)
+
+    motivation:
+      experience: Large response with hundreds of staff and volunteers, with various delays
+      behavior: Delayed large response
+      context:
+        factors:
+          - knowledge (spread across people, documents)
+          - coordination (required by, and of many people)
+
+      
+      lifecycle:
+        - Response / Triage
+      tags:
+        - human factors (coordination, large response)
+      iso:
+        - Operability
+    
+    item:
+      action: Major restructuring of response runbook and protocols
+      target: Incident response processes and documentation
+      goal: Quicker, more clear response and responsibilities
+
+      action-type:
+        - evo / alter
+        - evo / add
+      target-type:
+        - Incident response tools and process / Playbook
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+
+  AI-2: 
+    # A full map of all the various deployment channels we can use to ship code to users for all our products
+    # Balrog, Normandy, Dot Releases etc.
+    # Clear understanding of how many users we reach.
+    # Process and decisions for using a particular channel.
+    # Trade offs and impact analysis.
+    # Clear decision makers and owners for each channel.
+    # Shipping checklist and process.
+    # Confusion around our deployment channels surfaced in many of the post mortem discussions. Next steps are to find a lead and team to tackle this project. Pieces of this are underway already.
+
+    motivation:
+      experience: How to deploy fix was confusing and maybe not optimal (many options with unclear tradeoffs)
+      behavior: Confusion about deployment channels 
+      context:
+        factors:
+          - knowledge (spread across people and documents)
+          - complexity (of number of deployment channels)
+
+
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - human factors (confusion around deployment channels)
+      iso:
+        - Operability
+        - Recoverability
+    
+    item:
+      action: Document deployment options, use cases and trade-offs
+      target: Incident response processes and documentation
+      goal: Easier more accurate decision making (for deploying fixes)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Playbook
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-3: 
+    # Investigate a plan for deploying a "real" hotfix to everybody (big red button) in a similar emergency. We had to deploy multiple dot releases and other remediations just to get everybody running again.
+
+    motivation:
+      experience: How to deploy fix was confusing and maybe not optimal (many options with unclear tradeoffs)
+      
+      behavior: Confusion about deployment channels 
+      context:
+        factors:
+          - knowledge (spread across people and documents)
+          - complexity (of number of deployment channels)
+          - design (required dot releases for remediation)
+      
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Recovery
+      tags:
+        - human factors (confusion around deployment channels)
+      iso:
+        - Operability
+        - Recoverability
+
+    item:
+      action: Investigate plan for global fix deployment
+      target: Incident response deployment tooling
+      goal: Deploy to all all users at once (in emergency)
+
+      action-type:
+        - formative / discover options
+        - evo / add
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Tech / Support / Deployment tooling
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-4: 
+    # As we attempted to deploy remediations we kept running into a number of bugs and edge cases to handle. We recommend that we map out a full failure cascade in detail to understand if there are improvements we can make for the future.
+
+    motivation:
+      experience: Deployment hit defects and edge cases
+      behavior: Slow and complicated to deploy remediations
+      context:
+        factors:
+          - defect (in deployment processes)
+        scenarios:
+          - deployment (run into defects and edge cases during deploy)
+      
+      
+      lifecycle:
+        - Failure / Recovery
+        - Failure / Downstream Effects
+      tags:
+        - deployment (running into defects during deploy and edge cases)
+      iso:
+        - Recoverability
+    
+    item:
+      action: Consider all ways failure cascaded and look for improvements
+      target: UNCLEAR
+      goal: Avoid failures during remediation
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Other
+      sts:
+        - UNCLEAR
+      intended-effect:
+        - Reliability / Recoverability
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-5: 
+    # Detailed audit of anything with an expiry date so we understand what other time bombs might be out there. Bug logged.
+
+    motivation:
+      experience: Failure was triggered by certificate expiration
+      behavior: Cert expired
+      context:
+        factors:
+          - limit (certificate expiration is just one type of time-related issue)
+      
+      
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+      iso:
+        - Availability
+    
+    item:
+      action: Audit for similar failures (expirations)
+      target: UNCLEAR
+      goal: Avoiding hitting similar expiration limits
+
+      action-type:
+        - formative / check
+      target-type:
+        - Other
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    memos:
+      - Similar: anything else with a time expiry
+
+  AI-6: 
+    # Plan for the certificate that will expire in 2025. Bug logged.
+
+    motivation:
+      experience: Failure was triggered by certificate expiration
+      behavior: Cert expired
+      context:
+        factors:
+          - limit (certificate expiration is just one type of time-related issue)
+      
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+      iso:
+        - Faultlessness
+    
+    item:
+      action: Fix certificate expiration defect (before 2025)
+      target: App add-ons (plugins) signing 
+      goal: Avoid triggering same defect in the future
+
+      action-type:
+        - formative / schedule
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+      memos:
+        - temporal: Schedule work to be done before cert expires (way out in 2025)
+
+  AI-7: 
+    # Now that we understand the importance of add-on support for mobile (ratings plummeted during the incident), we might want to reconsider that strategy/priority for Fenix.
+
+    motivation:
+      experience: Add-ons could not be loaded during incident and ratings plummeted
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - customer impact (could not access)
+        - propagation (failure to dependency via hard dependency)
+      iso:
+        - Co-existence
+    
+    item:
+      action: Reconsider strategy for add-ons
+      target: Future mobile browser
+      goal: Avoid similar issues in future product
+
+      action-type:
+        - formative / discover options # "reconsider strategy"
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - UNCLEAR # Compatibility / Co-existence
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-8: 
+    # Solution for QA support on the weekend and during an incident of this level. This can be broader and cover how we handle incidents outside of the more normal business hours [...] Raised with Engineering Leadership. Look at next steps for prioritizing.
+
+    motivation:
+      experience: Incident happened on weekend with limited testing support (and there were no tests for scenario)
+      behavior: QA support on weekend and for this level of incident was weak
+      context:
+        scenarios:
+          - incident occurence time (over weekend)
+
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - on-call
+        - human factors (on-call)
+      iso:
+        - Faultlessness
+        - Recoverability
+    
+    item:
+      action: Add QA support during off work hours
+      target: Support and incident response practices
+      goal: Improve how they handle incidents outside normal hours
+
+      action-type:
+        - formative / schedule # prioritizing
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Communication / Support
+        - Maintenance / TODO
+      sts:
+        - Process / Incident response / QA support
+      intended-effect:
+        - Reliability / Faultlessness
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-9: 
+    # Detailed post mortem to look at events and decisions that caused us to delete a week’s worth of Telemetry data for all Desktop users. 
+
+    motivation:
+      experience: Telemetry data was deleted 
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (deleted)
+        - human factors (mistake, deleting data)
+      iso:
+        - Operability
+    
+    item:
+      action: Perform sub-postmortem about this issue (lost data)
+      target: UNCLEAR
+      goal: Better data safety
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Other
+      sts:
+        - Process / Incident response
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - investigate
+
+  AI-10: 
+    # Investigate some broadcast mechanism in our product so we can let our users know that we are aware of an issue. We used many channels, responded to threads directly. This was time consuming.
+
+    motivation:
+      experience: Many channels used to communicate to users
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (scattered across many channels)
+      iso:
+        - User assistance
+    
+    item:
+      action: Investigate and add mechanism to broadcast to all users (one channel)
+      target: Web browser messaging (to end users)
+      goal: More efficient user communication
+
+      action-type:
+        - formative / discover options
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-11: 
+    # Deeper investigation into the systems involved for handling add-ons and security.
+    # Better understanding of how the add-on signing system works and more complete documentation of the entire system.
+    # Improvements to our certificate management process and key rollover strategies
+    # Project is underway to investigate this further. Will likely break out into multiple sub projects.
+
+    motivation:
+      experience: Add-ons could not be loaded during incident and ratings plummeted
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - customer impact (could not access)
+        - propagation (failure to dependency via hard dependency)
+      iso:
+        - Co-existence
+    
+    item:
+      action: Investigate, document and improve (rollover strategy)
+      target: Web browser add-ons and certificate management
+      goal: Better handle certificate rollover (major cross-cutting concern)
+
+      action-type:
+        - formative / investigative
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Availability
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - investigate
+        - mitigate future
+
+  AI-12: 
+    # Explore diversity in the configurations that we run in continuous integration.
+
+    motivation:
+      experience: Failure was triggered by certificate expiration, which was not covered by a category of tests
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+        - tests (does not look into the future)
+      iso:
+        - Availability
+    
+    item:
+      action: Explore options and add more diversity for test environments (configs)
+      target: Testing environment
+      goal: Catch in test
+
+      action-type:
+        - formative / discover options
+        - evo / add
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+      
+    memos:
+      - Similar: To 60.3 (investingate improvements to diversity of our tests in staging)

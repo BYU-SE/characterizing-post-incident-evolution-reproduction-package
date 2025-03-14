@@ -1,0 +1,188 @@
+#
+# 53.yaml | Google
+# http://googleblog.blogspot.com/2014/01/todays-outage-for-several-google.html
+#
+# An automated configuration generation system produced a bad configuration causing downtime to many systems, and then automatically cleared the defect and produced a good configuration 12 minutes later, causing the system to automatically recover
+# 
+#
+# Researcher Notes:
+#
+
+IR-53:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # The issue has been resolved, and we’re now focused on correcting the bug that caused the outage, as well as putting more checks and monitors in place to ensure that this kind of problem doesn’t happen again.
+    - Similarity: kind of problem using correction, checks, monitors
+
+    # With services once again working normally, our work is now focused on (a) removing the source of failure that caused today’s outage, and (b) speeding up recovery when a problem does occur. We'll be taking the following steps in the next few days:
+    - Post-incident work is different, focused on removing conditions and reducing impact for the next time
+
+    # Engineers were still debugging 12 minutes later when the same system, having automatically cleared the original error, generated a new correct configuration at 11:14 a.m. and began sending it; errors subsided rapidly starting at this time. 
+    - Graceful recovery: Having automatically cleared the error is a cool feature. Self-healing in a way; "causing the system to automatically recover".
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # At 10:55 a.m. PST this morning, an internal system that generates configurations—essentially, information that tells other systems how to behave—encountered a software bug and generated an incorrect configuration. [.. We will be ] Correcting the bug in the configuration generator to prevent recurrence [... continued below ...]
+
+    motivation:
+      experience: The configuration generation system generated an incorrect configuration
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (caused configuration generation system to generate bad configurations which were then used)
+        - automated config generated
+        - automation failure (generated bad configuration after defect)
+      iso:
+        - Operability
+
+    item:
+      action: Correct bug and audit similar systems
+      target: Control service for generating configuration (single)
+      goal: Prevent recurrence
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+      
+    other:
+      modification: Fix configuration generation defect 
+      level: system
+
+    themes:
+      - automating failure
+
+    memos:
+      - Similar: Conditions, similar bug
+
+  AI-2:
+    # [... continued from above ...] and auditing all other critical configuration generation systems to ensure they do not contain a similar bug.
+
+    motivation:
+      experience: The configuration generation system generated an incorrect configuration
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (caused configuration generation system to generate bad configurations which were then used)
+        - automated config generated
+        - automation failure (generated bad configuration after defect)
+      iso:
+        - Operability
+        - Faultlessness
+
+    item:
+      action: Correct bug and audit similar systems
+      target: Control service for generating configuration (many)
+      goal: Prevent recurrence
+
+      action-type:
+        - formative / check
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      activity: audit
+      level: system
+
+    memos:
+      - Similar: Conditions, similar bug
+
+  AI-3:
+    # Adding additional input validation checks for configurations, so that a bad configuration generated in the future will not result in service disruption.
+
+    motivation:
+      experience: The configuration generation system generated an incorrect configuration, which was used without any input validation
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (caused configuration generation system to generate bad configurations which were then used without checks)
+        - automation failure (generated bad configuration after defect without sanity checks)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Add input validation checks
+      target: Service using generated configuration
+      goal: Prevent bad configurations from causing service disruption
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Operational constraint
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective input validation checks (for generated configuration)
+      level: component
+
+    memos:
+      - Difference between preventing bad configurations and reducing the impact of a bad configuration
+  
+  AI-4:
+    # Adding additional targeted monitoring to more quickly detect and diagnose the cause of service failure.
+
+    motivation:
+      experience: Monitoring detected issue (7 minutes late) but did not help responders diagnose (22 minutes later still diagnosing)
+      lifecycle:
+        - Response / Detection
+        - Response / Diagnosis
+      tags:
+        - delayed detection (late, latent issues slowly pops up as bad config slowly propagates)
+        - delayed RCA (slow, but preempted when error was automatically cleared)
+      iso:
+        - Recoverability
+
+    item:
+      action: Add targeted monitoring
+      target: Metrics reporting (for multiple systems)
+      goal: More quickly detect and diagnose the failure
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - UNCLEAR
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect
+        - mitigate future
+
+    other:
+      modification: Expose more targeted metrics
+      level: component

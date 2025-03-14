@@ -1,0 +1,198 @@
+#
+# 75.yaml | Chef
+# https://www.chef.io/blog/2014/07/10/supermarket-intermittent-unresponsiveness-postmortem/
+#
+# Details: https://gist.github.com/cwebberOps/402f60e32a80fab3e6de
+
+IR-75:
+
+  extractedBy: JS
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Resources / Making-Headroom (through efficiency):
+      - AI-2 adjust number of workers (to match cores)
+      - AI-3 download efficiency (async metrics collecting)
+
+  memos:
+    # we schedule an internal postmortem meeting, where the incident leader for the problem discusses with others who were involved what happened, why, and how to prevent the same thing from happening
+    - Similar
+
+    # Details document contains 1 more AI than the linked one, but we are excluding it
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1: 
+    # Change the behavior of the Berkshelf API Servers, to use the new /universe endpoint. (Berkshelf Core Team)
+
+    motivation:
+      experience: UNCLEAR
+    
+    item:
+      action: Migrate service to new endpoint (service)
+      target: API services & (new) end point
+      goal: UNCLEAR
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - UNCLEAR
+      temporal: new
+      google-ai:
+        - UNCLEAR
+
+  AI-2: 
+    # Adjust the number of unicorn workers on each node as necessary. (Joshua Timberman)
+
+    motivation:
+      experience: Service was overloaded at launch (no load testing), there was a mismatch between the number of unicorn workers and number of cores on each machine
+      
+      behavior: Overwhelmed by traffic
+      context:
+        factors:
+          - design (mismatch between number of workers and cores on each machine)
+          - testing (did not do tests)
+          - deployment (of new site without load tests)
+        scenarios:
+          - high load (more than could serve, and when nodes pulled out of rotation it caused load elsewhere)
+      
+      
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (of new site without load tests)
+        - tests (did not do load tests)
+      iso:
+        - Capacity
+    
+    item:
+      action: Reconfigure number of workers per server
+      target: HTTP server configuration
+      goal: Efficiently handle load
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Instance
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-3: 
+    # Improve performance with the way downloads are handled. This will include ensure that the metrics collection is non-blocking. (Christopher Webber and Full Stack)
+
+    motivation:
+      experience: Service was overloaded at launch (no load testing), there was a mismatch between the number of unicorn workers and number of cores on each machine
+      behavior: Overwhelmed by traffic
+      context:
+        factors:
+          - design (mismatch between number of workers and cores on each machine)
+          - testing (did not do tests)
+          - deployment (of new site without load tests)
+        scenarios:
+          - high load (more than could serve, and when nodes pulled out of rotation it caused load elsewhere)
+      
+      
+      
+      
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (of new site without load tests)
+        - tests (did not do load tests)
+      iso:
+        - Capacity
+    
+    item:
+      action: Reduce cost of metrics collection
+      target: Monitoring and metrics system 
+      goal: Efficiently handle load
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Time behavior (nonblocking)
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-4: 
+    # Get updates from http://status.getchef.com into #chef on irc.freenode.net. (Christopher Webber)
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Route status updates to IRC channel
+      target: Customer communication systems
+      goal: Streamline/refine (customer communication)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication / Internal
+      sts:
+        - Process / Customer communication (status updates)
+      intended-effect:
+        - Interaction Capability / User assistance (more channels)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-5: 
+    # The health check timeouts were set too low to be effective. We ended up in a state where nodes were being taken out of the pool causing a domino effect. As one node would be pulled out, the other nodes would see a significant increase in traffic, causing them to time out and fall out of the pool.
+
+    # Add additional alerting around nodes falling out of the ELB. (Chef Operations)
+
+    motivation:
+      experience: Health checks removed healthy nodes since their timeouts were too short
+      
+      behavior: Nodes pulled out of rotation even when healthy
+      context:
+        factors:
+          - limit hit (short timeouts on health checks)
+      
+      lifecycle:
+        - Failure / Downstream Effects 
+      tags:
+        - health check failure
+        - inaccurate health assessment (timeouts)
+        - limit hit (timeouts on health checks)
+      iso:
+        - Fault tolerance 
+    
+    item:
+      action: Monitoring for nodes being removed from ELB
+      target: Alarming system 
+      goal: Quickly catch node removals (so responders can remedy)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Fault tolerance 
+      temporal: new
+      google-ai:
+        - mitigate future

@@ -1,0 +1,188 @@
+#
+# 17.yaml | AWS
+# http://aws.amazon.com/message/4372T8/
+#
+# Description: "our utility provider suffered a loss of power at a regional substation as a result of severe weather in the area. This failure resulted in a total loss of utility power to multiple AWS facilities. In one of the facilities, our power redundancy didn't work as designed, and we lost power to a significant number of instances in that Availability Zone."
+#
+# Researcher Notes:
+# 
+
+IR-17:
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+
+    - Fix and test / Recovery process (not previously tested):
+      - AI-2 fix latent bug
+      - AI-3 begin regular testing program 
+
+  memos:
+
+    # recovery load
+    - An idea relevant to lots of instances (high load due to recovery)
+
+    # While we have experienced excellent operational performance from the power configuration used in this facility, it is apparent that we need to enhance this particular design to prevent similar power sags from affecting our power delivery infrastructure.
+    - Similarity
+
+  
+    # We are never satisfied with operational performance that is anything less than perfect, and we will do everything we can to learn from this event and use it to drive improvement across our services. 
+    - Goal in mind for LFI
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # "Remediation"
+  #
+
+  AI-1:
+    # The specific signature of this weekend’s utility power failure resulted in an unusually long voltage sag (rather than a complete outage). Because of the unexpected nature of this voltage sag, a set of breakers responsible for isolating the DRUPS from utility power failed to open quickly enough [...] In order to prevent a recurrence of this correlated power delivery line-up failure, we are adding additional breakers to assure that we more quickly break connections to degraded utility power to allow our generators to activate before the UPS systems are depleted.
+
+    motivation:
+      experience: Breakers did not open quickly enough after an unusually long voltage sag (not outage), causing a power outage
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - infrastructure disruption (power sag, breaker failing to open quick enough)
+      iso:
+        - Fail safe
+        - Fault tolerance
+
+    item:
+      action: Add breakers between utility, generators and servers
+      target: Data center power infrastructure (UPS, etc)
+      goal: Prevent draining reserve power in event of power "sag"
+
+      action-type:
+        - evo / add # add more
+      target-type:
+        - Infrastructure / Power equipment
+      sts:
+        - Infrastructure / Data center power delivery systems
+      intended-effect:
+        - Reliability / Fault tolerance (more quickly react)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Protective power mechanism
+      level: component
+
+    memos:
+      - Similar: Condition, Any event that can cause a power sag rather than outage, also idea of a "signature"
+
+  AI-2:
+    # A latent bug in our instance management software led to a slower than expected recovery of the remaining instances [...] fix the latent issue that led to our recovery systems not being able to automatically recover a subset of customer instances. That fix is already in testing, and will be deployed over the coming days.
+
+    motivation:
+      experience: Latent defect in instance management software led to slower than expected, and only partial recovery
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - defect (prevented full recovery)
+        - automation failure (didn't not recovery all instances automatically)
+      iso:
+        - Faultlessness
+        - Recoverability (delayed remediation)
+
+    item:
+      action: Fix latent defect; test and deploy fix
+      target: Fleet and cluster instance management service
+      goal: Speed up recovery after power loss (avoid need to manually recover)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability (automatic)
+      temporal: new
+      google-ai:
+        - mitigate future #/ reduce recovery time
+
+    other:
+      modification: Fix latent defect preventing automated recovery
+      activity: fix, test, deploy
+      level: component
+
+    themes:
+      - ungraceful recovery
+      - automation / fix failed recovery mechanism
+
+
+  AI-3:
+    # We will also be starting a program to regularly test our recovery processes on unoccupied, long-running hosts in our fleet. By continually testing our recovery workflows on long-running hosts, we can assure that no latent issues or configuration setting exists that would impact our ability to quickly remediate customer impact when instances need to be recovered.
+
+    motivation:
+      experience: Latent defect in instance management software led to slower than expected, and only partial recovery
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - defect (prevented full recovery)
+        - automation failure (didn't not recovery all instances automatically)
+      iso:
+        - Faultlessness
+        - Recoverability (delayed remediation)
+
+    item:
+      action: Introduce testing program for instance recovery
+      target: Testing processes for recovery workflows
+      goal: Catch latent issues in code or configuration (related to recovery)
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Process / Testing procedures #(for support system)
+      intended-effect:
+        - Reliability / Recoverability
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - mitigate future #/ catch recovery issues in test
+
+    other:
+      modification: Regularly test recovery process (automate)
+
+    themes:
+      - ungraceful recovery
+
+    memos:
+      - Testing of recovery workflows may be neglected (interesting?)
+      - A process to test other process
+      - This prevents also defects which can be introduced in the future
+
+  AI-4:
+    # For this event, customers that were running their applications across multiple Availability Zones in the Region were able to maintain availability throughout the event. For customers that need the highest availability for their applications, we continue to recommend running applications with this architecture. We know that it was problematic that for a period of time there were errors and delays for the APIs that launch instances. We are working on changes that will assure our APIs are even more resilient to failure and believe these changes will be rolled out to the Sydney Region in July. 
+
+    motivation:
+      experience: UNCLEAR (a failure occurred?)
+
+    item:
+      action: Improve resilience (VAGUE)
+      target: Fleet instance management systems (scaling)
+      goal: Ensure customers can still control their systems during failures
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance ("resilient to failure")
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - More complete isolation 

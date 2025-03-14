@@ -1,0 +1,65 @@
+#
+# 38.yaml | Blue Matador
+# https://www.bluematador.com/blog/post-mortem-kubernetes-node-oom
+#
+#
+# Researcher Notes:
+#
+
+IR-38:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # Even though I do not have a root cause for every issue I was seeing, I am confident that I do not need to put more effort into preventing this issue again. Time is valuable, and I’ve already spent enough time on this issue and then writing this post to share. Since we use Blue Matador, we actually have very good coverage for issues like this, which allows me to let some mysteries slide in favor of getting back to work on our product.
+    - when to end incident analysis, the extra root cause effort is massive (lost data, so they'd have to try to replicate failure without knowing what they were looking for)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # After a few days I was able to confirm that the above fix worked. Memory usage on our nodes was stable and we were not having any issues with any component in Kubernetes, EC2, or EBS. I realize how important it is to set resource requests and limits for all of the pods I run, so it’s now on our backlog to implement some combination of default resource limits and resource quotas.
+
+    motivation:
+      experience: A node in the production cluster experienced an OOM event, and memory increased periodically (close to edge)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (memory)
+        - limit approach (increasing memory usage)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Implement default resource limit and resource quotas
+      target: Cluster component resource limits (Kubernetes)
+      goal: Avoid resource related issues that can be addressed by bounds
+
+      action-type:
+        - evo / add
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Add safety mechanisms (memory request limits)
+
+    memos:
+      # so it’s now on our backlog
+      - Interesting use of backlog - may indicate something not to be done immediately
+      - Thresholds: Adding intentional thresholds to prevent coupling from causing issues to spiral or propagate
+   
+
+

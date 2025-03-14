@@ -1,0 +1,138 @@
+#
+# 30.yaml | WazirX
+# https://support.wazirx.com/hc/en-us/articles/900005490846-April-4-2021-Downtime-Analysis-Report
+#
+# A traffic spike led to a service provider rate limit being reached and the scaling system was unable to provision new servers, and traffic clogged the existing servers slowing them down.
+#
+#
+# Researcher Notes:
+#
+
+IR-30:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Fix-And-Tolerate:
+      - AI-1 fix defect (scaling)
+      - AI-2 tolerate errors of this type (downstream)
+
+  memos:
+    - Everything is vague in this report
+
+    # Due to an unprecedented traffic, we hit an internal rate limit with our service provider, and as a result, our scaling system was unable to create new instances for incoming users. Our existing servers were forced to accommodate existing as well new users, and this pressure caused all our servers to get clogged.
+    - Scaling problem; at some point no one gets service
+
+    # Unfortunately, it was not a straightforward way to increase limits with the service provider, and our team had to build a solution quickly to circumvent this issue. After working on it all night, we got the product back up at 
+    - On the responder options topic; building to fix
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [The scaling system was unable to provision new instances when a service provider limit was reached. Traffic surged and the system became overwhelmed] As we continue to grow, we're working on preparing our scaling systems.
+
+    motivation:
+      experience: Their existing servers were overloaded when the scaling system was unable to provision new instances when they hit a rate limit with the third party service provider
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike)
+        - limit hit (third party rate limit)
+        - automated scaling actions (could not scale up further due to rate limit)
+      iso:
+        - Scalability
+        - Capacity
+
+    item:
+      action: Prepare for future growth (VAGUE)
+      target: Fleet scaling systems
+      goal: Prevent scaling systems from not working
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Flexibility / Scalability (management)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Prepare scaling systems for continued growth
+
+
+  AI-2:
+    # [Existing servers struggled to provide service under heavy load] We're also building systems in place to ensure that any issue in one part of a service does not affect the rest of our services.
+
+    motivation:
+      experience: Their existing servers were overloaded when the scaling system was unable to provision new instances
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (load to dependency via shared pool of servers)
+      iso:
+        - Fault tolerance
+        - Co-existence
+
+    item:
+      action: Tolerate degradations in dependent services (VAGUE)
+      target: Systems to isolate failures within services (VAGUE)
+      goal: Ensure that issues in one part of a service do not affect the rest
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (decouple & tolerance to hard dependency failure)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Design and implement protective mechanisms (isolate)
+
+    memos:
+      - Similar to 7.4, 9.4, 30.2, 47.3
+
+  AI-3:
+    # We'll also focus on communicating with you via all online channels and keeping you abreast of what is happening in real-time. 
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Focus on communicating (VAGUE)
+      target: Customer communication during incident
+      goal: Keep customers up to date during incident in real time
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Customer communication
+      intended-effect:
+        - Interaction Capability / User assistance (in real-time)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Formalize multi-channel communication
+
+    memos:
+      # Since Day 1, we’ve been building WazirX as India’s most trusted exchange that’s transparent with communications, and I want to share what happened yesterday:
+      - Trust: Communicating with customers is important and seems to be an overarching goal of the org, so they want to repair damage done with AI-3

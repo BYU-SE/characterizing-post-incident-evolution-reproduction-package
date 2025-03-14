@@ -1,0 +1,64 @@
+#
+# 27.yaml | NRE Labs
+# https://keepingitclassless.net/2018/12/december-4-nre-labs-outage-post-mortem/
+#
+# NRE Labs goes offline due to a failing liveness probe taking down the cluster every 2 minutes
+#
+#
+# Researcher Notes:
+#
+
+IR-27:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # Nevertheless, as always, these are great learning experiences. Some takeaways - first, the good
+    - Failure is a good learning experience, then comes the takeaways
+
+  ######################################
+  # AIs
+  ######################################
+  
+  AI-1:
+    # We need a “down for maintenance” page that directs to twitter for updates. Not failing “halfway”, and leaving folks guessing what went wrong. For those of you that sent direct messages asking about this, I apologize. We should do better with this, and will look into running a basic maintenance page in Google Cloud Functions we can redirect to when things like this happen, planned or unplanned.
+
+    motivation:
+      experience: They were missing mechanism for customer communication and so customers were messaging the responder directly
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - human factors (clients were confused and messaging responder directly)
+        - customer communication (missing, unclear about status)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Create "down for maintenance" page for redirect under duress
+      target: Status Page (down for maintenance)
+      goal: Fail fully (not halfway) and clearly communicate unavailability
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance (status transparency)
+      temporal: new
+      google-ai:
+        - mitigate future #/ improve response 
+
+    other:
+      modification: Add public status page component (down for maintenance)
+      level: system
+
+    memos:
+      - Worded as lesson learned # "We need ..." but then "will look into"
+      - Commitment: Wishy-washy language "will look into"
+

@@ -1,0 +1,609 @@
+#
+# 7.yaml | Elastic
+# https://www.elastic.co/blog/elastic-cloud-incident-report-feburary-4-2019
+#
+# During an upgrade of hosts in the coordination layer high traffic and a defect led to CPU softlocks and a ZooKeeper failure. A portion of the high traffic was due to reconnection attempts due to the instability caused by high latency. A second set of services (Kibana dashboards) that depend on the ZooKeeper ensemble also failed due to a defect that left unsuccessful connections open (and there were many because of failures to connect to the Zookeeper ensemble).
+#
+#
+# Researcher Notes:
+#
+# [TODO] Should probably normalize our use of service, layer and application in the following.
+
+IR-7:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # 
+    # This led to unanticipated instability on and between hosts, which ultimately led to an overall failure of the coordination layer.
+    #
+
+    - Resources / Making-Headroom for recovery (no vicious cycles): # recovery needed less load
+      - AI-1 reduce req/res size (less IO per request)
+      - AI-2 reduce health checks and intervals (guess)
+      - AI-4 decouple layers (so retries don't hammer zookeeper)
+      - AI-9 backoff strategies for clients
+
+    - Maintenance safety / Maintainer decision making: 
+      # The incident began following a routine patching procedure for the coordination layer in our AWS us-east-1 region. Despite following the same process as the other 12 regions
+      - AI-5 better visibility for decision making (metrics)
+      - AI-10 maintenance time windows
+      - AI-11 decision making matrix (avoid)
+
+    - Other / Defective under duress:
+      # Identifying and solving issues ...
+      - AI-6 more resilient routing
+      - AI-7 defective request amplification
+      - AI-8 socket leak
+      - AI-9 defect with backoff strategy
+
+  memos:
+    - Tradeoffs: Some AIs are simply a decision to make a different set of tradeoffs, presumably based on the consequences the original decision had during the incident. In the case of AI-3 the tradeoff is between "a potential small consistency skew over general availability". In the case of AI-2 it is likely between safety and availability (or recoverability, possibility).
+
+    - Uncertain defects: The incident and postmortem identified defective behavior ("request amplifications") manifest only during incident scenario ("availability events"), but now what the defect was. So AI-7 is investigate and fix style. Similarly, AI-8 "identifying and solving" a defect "that lead to connection leaking". These socket leaks were only noticed because of the large number of failed and retried requests. And finally, AI-9 involves identifying why expected backoff strategies were not employed and then fixing them.
+
+    - Similar symptoms: During an incident the behavior of the system may be somewhat unique, but it is easy during a postmortem to imagine other ways to get the same behavior or perhaps more precisely similar symptoms (from the perspective of dependencies, for example). All of the "find and fix" AIs (AI-7, AI-8 and AI-9, at least) are about how some failure mode was not well handled, because it activated a defect. For an future failure with similar symptoms (say high failure rate) fixing the defect (socket leak) will be an important mitigation.
+
+    # With subsections called "Engineering and Architecture" and "Process and Communications"
+    - AI-Section-Title: Section called "Action Items"
+
+    - Unknown-PAS: Event UNKNOWN PAs because they have reflected on the relationship between layers
+
+    # If any additional follow-up actions for this incident are decided upon, we will update this post accordingly.
+    - IR-Not-Complete: More AIs may come out of this
+
+    - Always-Present-Failure: Focus not on avoiding root cause (failures will always be with us) but ...
+
+    - Key-PAS: Some completed, some not
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The ZooKeeper ensemble came under high load (CPU, IO, memory), with large numbers of client connection failures and re-connects across the ensemble [...] Reduced the dataset size carried by our ZooKeeper ensembles by over 60%. By doing so, network and disk I/O requirements for ZooKeeper are greatly reduced during normal operation, as well as providing faster recovery times for ensemble members joining the quorum. (Completed)
+
+    motivation:
+      experience: Adding a new ensemble member had synchronized, costly resync operation
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (patching)
+        - reconnection storm
+        - resync involves large amounts of data (storm)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Reduce size of stored and replicated configuration data
+      target: Distributed datastore manager (sync mechanisms, etc)
+      goal: Reduce I/O requirements and recovery times
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Data and data architecture
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (req/res sizes and I/O)
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - prevent #/ optimize (data stored and replicated)
+      coding:
+        - Keep within range (headroom to reduce risk, safe)
+
+    other:
+      modification: Reduce configuration data size # resource utilization
+      level: component interactions
+      system-role: Provide configuration data to applications with any number of clients.
+      incident-role: Slow and expensive to scale up
+      completed: true
+
+    themes:
+      - headroom
+
+    memos:
+      - Multiple benefits (low hanging fruit): Multiple anticipated benefits of this one action, which is to reduce data size. This will improve (1) efficiency "during normal operation", and (2) recovery times during incidents. The second one is why its an AI, obviously, and it is the incident that spurred this efficiency improvement that would have been of benefit anyway.
+
+  AI-2:
+    # Once the ZooKeeper ensemble and observers were stable, the proxy fleet was scaled up and out to handle the increased traffic to ES clusters [...] Reduced the number of health-checks and intervals required to allow a proxy node, marked as healthy, to join our load balancing layer as eligible targets to route traffic. This action item aims to reduce the mean time to recovery. (Completed)
+
+    motivation:
+      experience: Startup and activation health checks delayed new nodes from joining the load balancing layer
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - delayed recovery (slow activation time for new nodes)
+        - slow scaling up operation
+        - automated scaling actions (scale up too slow since activation expensive)
+      iso:
+        - Recoverability
+
+    item:
+      action: Reduce checks and time needed when adding new nodes
+      target: Health checking system used by load balancer
+      goal: Reduce mean-time to recovery by increasing activation speed
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability (time)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine (fewer checks to reduce MTR)
+
+    other:
+      modification: Adjust (activation-time) health checking logic (relax)
+      activity: revamp health checks
+      level: component interactions
+      system-role: To quickly ensure new nodes are healthy before they enter pool. (cautious vs quick)
+      incident-role: Health checks take too long and gets in way of other systems
+      timing: complete
+
+    themes:
+      - tradeoffs / time to join vs. health assurances
+      - automation / fix automated interference (number of health checks when adding nodes)
+      - ungraceful recovery / health check interference
+
+  AI-3:
+    # Further revamp the logic around our proxy health-checks to not account for ZooKeeper connectivity as part of the checklist. With this change, once a proxy is successfully initialized, and has received its configuration and cluster routes, it will no longer drift to an unhealthy state due to the state of the supporting ZooKeeper ensemble. This change aims to sacrifice a potential small consistency skew over general availability. (In progress)
+
+    motivation:
+      experience: Health check logic accounted for connectivity to dependency
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - inaccurate health assessment
+        - health check action (removed healthy nodes)
+        - propagation (failure from dependency via health checks)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Remove dependency connectivity from health check logic
+      target: Health checking system used by load balancer
+      goal: Maintain general availability by not removing healthy nodes
+
+      action-type:
+        - evo / subtract
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Support # (load balancer)
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Fault tolerance (to hard dep failure)
+      temporal: new
+      google-ai:
+        - mitigate future # limits issues when dep is down
+      coding:
+        - Isolate failure
+
+    other:
+      modification: Adjust (activation-time) health checking logic (exclude dep connectivity)
+      activity: revamp health checks
+      level: component interactions
+      system-role: To ensure nodes are healthy in the pool, removing unhealthy ones.
+      incident-role: Marked actually healthy nodes as unhealthy due to inconsistency (inaccurate health assessment)
+
+    themes:
+      - tradeoffs (consistency v availability)
+      - ungraceful recovery
+      - decouple (health checks as coupling mechanism)
+
+    memos:
+      - Graceful recovery: This AI will make it so that one component can start up (or nodes be added) while the other is still down. This simplifies the work of responders while trying to recover the system. AI-2 is related to this as well (and this AI is to "further revamp the ..." already revamped in AI-2).
+
+  AI-4:
+    # The ZooKeeper ensemble came under high load (CPU, IO, memory), with large numbers of client connection failures and re-connects across the ensemble [...] Canarying the ground up rewrite of our proxy layer in production regions, as one of the final steps to switch to our proxy v2 architecture. The v2 architecture decouples the proxy service from the ZooKeeper state. (In progress)
+
+    motivation:
+      experience: Once the client connections were re-established, the proxy layer began to exhibit high load due to a large influx of external re-connections
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (reconnection storm)
+        - resync involves large amounts of data (storm)
+        - propagation (load to dependency via reconnection storm)
+      iso:
+        - Resource utilization
+        - Capacity
+
+    item:
+      action: Rollout decoupled "v2 architecture" in stages
+      target: Network proxy service coupled to "ZooKeeper state"
+      goal: Avoid cascades & vicious cycles
+
+      action-type:
+        - evo / alter #/ replace
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance (decouple & tolerance to hard dependency failure)
+      temporal: previously started
+      google-ai:
+        - mitigate future
+      coding:
+        - Isolate failure (breaking vicious cycle)
+
+    other:
+      modification: Replace (upgrade) proxying component
+      level: architecture (major)
+      activity: rewrite (done), canary, deploy
+      system-role: Maintain a data connection with the ZooKeeper ensemble
+      incident-role: Exhibited high load when ZooKeeper ensemble was under duress
+
+    themes:
+      - decoupling based on state
+
+    memos:
+      - Similar to 7.4, 9.4, 30.2, 47.3
+
+  AI-5:
+    # Service metrics had reported the hosts as healthy [...] however, the metrics proved to be insufficient in conveying the state of individual hosts and of the coordination layer as a whole [leading to] unanticipated instability on and between hosts, which ultimately led to an overall failure of the coordination layer [...] Improve visibility around ZooKeeper by further investing in our internal logging strategy and introducing better metrics around the ZooKeeper processes, the JVM, and container/host systems. (In progress)
+
+    motivation:
+      experience: Incorrect decisions were made when health metrics are insufficient to convey the state of the hosts and coordination layer as a whole
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - inaccurate health assessment (leading to instability)
+        - propagation (failure from dependency via health checks)
+        - human factors
+      iso:
+        - Analysability
+
+    item:
+      action: Add additional logging & metrics across system layers
+      target: Metrics reporting across system layers (app, JVM, container)
+      goal: Provide more accurate state information (visibility into health)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability (across layers)
+        - Interaction Capability / User error protection
+      temporal: previously started
+      google-ai:
+        - mitigate future # not having metrics allowed the incident to take place (proceeded with patching)
+      coding:
+        - Informing operation (human decision makers)
+
+    other:
+      modification: Expose more metrics (visibility across layers)
+      activity: introduce metrics
+      level: component, system layers
+      system-role: Indicate system health to human operators
+      incident-role: Reported that it was healthy to proceed with maintenance operations even though additional metrics would have indicated otherwise
+
+
+  AI-6:
+    # To enable inter-host traffic using TLS, an ancillary container is used for services like Kibana to communicate internally to its Elasticsearch cluster securely. Each allocator host is running that container to allow secure, auditable connections to other hosts within Elastic Cloud [...] Kibana instances were not able to connect to their target Elasticsearch clusters due the internal TLS proxying service being unable to forward requests to the proxy layer [...] Improve resiliency in Kibana routes discovery methods. (In progress)
+
+    motivation:
+      experience: Requests could not be routed due to discovery failure during the incident
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from network, cannot discover routes)
+        - behavior during incident
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Improve resiliency in (route discovery) code (VAGUE)
+      target: Route discovering mechanism for data viz app (Kibana)
+      goal: Reliable routing during incidents (increase resilience)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Extend to scenario (operating under duress)
+
+    other:
+      level: component interactions
+      modification: Fix issue with request forwarding code
+      system-role: Ensure requests from Kibana could reach Elasticsearch clusters
+      incident-role: Was unable to route (forward) requests
+
+  AI-7:
+    # A set of previously unknown bugs in Kibana was resulting in [...] HTTP request amplification back to the load balancing layer, driving extra traffic to the proxy layer and Elasticsearch deployments [...] Other issues with Kibana that were determined to lead to request amplification are also being investigated [...] Identifying and solving issues with Kibana that lead to internal HTTP request amplifications during availability events. (In progress)
+
+    motivation:
+      experience: Latent defect caused internal HTTP request amplification back to the load balancing layer during availability events
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - defect (resulted in http request amplification, latent)
+        - high load (amplification)
+        - propagation (load to dependency via request amplification)
+        - behavior during incident
+      iso:
+        - Faultlessness
+        - Fault tolerance (to availability events)
+
+    item:
+      action: Identify and solve issues with HTTP request amplification
+      target: Interaction code from data viz app (Kibana) to load balancer
+      goal: Uncover and understand the amplification of requests "during availability events"
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness (well-behaved & preventing request amplification)
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - mitigate future # not worse "during availability events"
+      coding:
+        - Keep within range (load on dependency)
+
+    other:
+      modification: Reduce request multiplier (fix amplification defects)
+      activity: investigation, solve
+      level: component interactions
+      coding:
+        - Keep within range (load from amplification, headroom)
+        - Eliminate defect (under scenario)
+      system-role: Ensure requests from Kibana could reach Elasticsearch clusters
+      incident-role: Did not gracefully handle failure, amplified requests
+
+    themes:
+      - latent defect
+
+    memos:
+      - Question - how frequent are source code changes in AIs?
+      - Improving-Understanding: Investigation required
+
+  AI-8:
+    # A set of previously unknown bugs in Kibana was resulting in connection leaks [...] Identifying and solving issues with Kibana that lead to connection leaking. (In progress)
+
+    motivation:
+      experience: Latent defect leaked open sockets until a limit was reached and internal proxy service was unable to forward requests
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - defect (connection leak, latent)
+        - limit hit (connections)
+        - degradation (strain on containers)
+        - propagation (failure from network, cannot proxy requests)
+      iso:
+        - Fault tolerance
+        - Faultlessness
+
+    item:
+      action: Identify and fix connection leak bugs
+      target: Interaction code from data viz app (Kibana) to load balancer
+      goal: Uncover and understand unknown bugs that resulted in connection leak
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness (preventing connection leaks)
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - mitigate future # not worse "during availability events"
+      coding:
+        - Handle gracefully
+        - Eliminate defect (under scenario)
+
+    other:
+      modification: Fix latent connection leak defects # connections
+      activity: investigation, solve
+      level: component
+
+      system-role: Ensure requests from Kibana could reach Elasticsearch clusters
+      incident-role: Did not gracefully handle failure, leaked connections
+
+    themes:
+      - latent defect (at extremes)
+
+
+  AI-9:
+    # A stable quorum was established by reducing client load and reducing operator debugging actions on the impacted ZooKeeper hosts [...] Identified and mitigated issues with internal monitoring agents not employing proper backoff strategies with Jitter. (Completed)
+
+    motivation:
+      experience: Operator debugging actions impacted hosts by adding load without backing off
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - responder action (debugging)
+        - responder tooling (consequences of not being gentle)
+        - high load (missing backoff)
+        - defect (missing backoff)
+      iso:
+        - Recoverability
+
+    item:
+      action: Investigate and fix backoff strategy in retry code
+      target: Internal monitoring agent retry code
+      goal: Reduce load on distressed services (during debugging)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+        - Reliability / Fault tolerance
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Keep within range (load from support system)
+        - Eliminate defect (missing backoff)
+
+    other:
+      modification: Reduce retries and add jitter (fix backoff defect)
+      activity: identify, mitigate
+      level: component interactions
+
+      system-role: Connect responder tooling with ZooKeeper host metrics
+      incident-role: Added load onto the already distressed systems
+      complete: true
+
+    themes:
+      - support tool exacerbating
+
+  AI-10:
+    # [Maintenance activities triggered the event and the event lasted into peak times] Formalized our maintenance matrix to reduce exposure of critical services within a region. We will be operating within specific timeframes for each region to limit the exposure of a failure to non-critical times. (Completed)
+
+    motivation:
+      experience: Routine patching that worked before led to an incident which lasted into peak times
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - maintenance action (patching, deployment)
+        - extended incident (lasted into peak times)
+      iso:
+        - Recoverability
+
+    item:
+      action: Add regional maintenance change windows (add formality)
+      target: Maintenance procedures (maintenance matrix)
+      goal: Reduce likelihood of (human triggered) incident during peak
+
+      action-type:
+        - evo / alter #/ formalize
+      target-type:
+        - SDLC / Maintenance
+      sts:
+        - Process / Maintenance procedures (SOP)
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Availability (exposure time)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Prevent user impact (or limit impact)
+        - Restricting operation
+
+    other:
+      modification: Formalize maintenance process (change windows)
+      activity: write maintenance matrix
+
+      system-role: Ensure operators know how and when to perform maintenance
+      incident-role: Did not prevent operators from performing maintenance action which was risky since it was extended
+      complete: true
+
+    memos:
+      - Similar: 
+          type: Impact, Temporal
+          notes: A dimension of similarity is captured by this AI. It aims to avoid similar impact for any maintenance triggered incident that lasts as long as this one did. The fix here is to make rules around change time windows.
+
+  AI-11:
+    # A call was made to roll forward with the operation [...] Provide our team with an improved decision criteria matrix in runbooks that involves regular maintenance operations with the coordination layer. (In progress)
+
+    motivation:
+      experience: Routine patching that worked before led to an incident which lasted into peak times
+      lifecycle:
+        - Failure / Downstream Effects (human operator)
+      tags:
+        - maintenance action (patching, deployment)
+        - extended incident (lasted into peak times)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve "decision criteria matrix" in runbooks
+      target: Maintenance procedures (human decision making)
+      goal: Reduce likelihood of maintainer triggered incidents
+
+      action-type:
+        - evo / alter
+      target-type:
+        - SDLC / Maintenance
+      sts:
+        - Process / Maintenance procedures (SOP) / Runbook
+      intended-effect:
+        - Interaction Capability / User error protection
+        - Safety / Operational constraint (through good runbooks)
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Restricting operation (using runbook)
+
+    themes:
+      - usually fine / regular maintenance operations
+
+    other:
+      modification: Formalize maintenance process (decision matrix)
+      activity: edit runbook
+
+      system-role: Ensure operators know how and when to perform maintenance
+      incident-role: Did not prevent operators from performing maintenance action which was risky since it was extended
+
+  AI-12:
+    # Established a feedback loop with our support leadership team for communications that go out through support or the status page. This will make sure we are answering the right questions and providing relevant updates. (Completed)
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Add procedure involving support leadership feedback
+      target: Customer communication procedures (status page)
+      goal: Better inform customers during incident (relevant information)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication # SDLC?
+      sts:
+        - Process / Customer communication (for IR)
+      intended-effect:
+        - Interaction Capability / User assistance (relevant)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Formalize communication process # customer communication
+
+      system-role: To provide customers with the right level and type of information
+      incident-role: UNCLEAR
+
+    themes:
+      - complete

@@ -1,0 +1,147 @@
+#
+# 48.yaml | GitHub
+# https://github.com/blog/744-today-s-outage
+#
+# They deleted the production database instead of the testing database due to a configuration error.
+#
+# Researcher Notes:
+#
+
+IR-48:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Responder options / Making sure next time goes smooth:
+      - AI-2 speed restoration
+      - AI-3 alternate restoration option
+
+  memos:
+    - AI-2 already underway and they just want to make it a top priority
+    - Prioritization: Ordering, AI-2 before AI-3
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # A few hours ago I was upgrading our continuous integration setup when a configuration error caused it to run against our production environment rather than our testing environment. [We will..] Completely isolate the test environment from the production environment, i.e. make production hosts unreachable from the testing VM.
+
+    motivation:
+      experience: A maintenance action to upgrade the CI setup was accidentally against prod due to a configuration error
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (upgrade)
+        - deployment (upgrade to CI setup, accidentally run against prod)
+        - human factors (mistake in configuration environment)
+        - risk of outage (test environment not isolated from prod)
+      iso:
+        - Faultlessness
+        - User error protection
+
+    item:
+      action: Isolate the test environment from the production environment
+      target: Test environment
+      goal: Prevent commands from being run on the production environment
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Environment
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Isolate test environment (from prod)
+      level: system
+
+
+  AI-2:
+    # We immediately began restoring the database from our most recent backup. Unfortunately, while most tables in the GitHub database are small, our “events” table is large. This significantly slowed the restoration process. Eventually the decision was made to skip the events table in order to speed up the restoration process. [Database woes] Obviously, this should have never had happened. It should be very difficult to cause a database failure like this and very easy to recover from it. [We will..] Reduce the size and growth rate of our events table. This is already well underway but is now one of our top priorities.
+
+    motivation:
+      experience: The DB restore was going to be a long process because of a single large table. Eventually this table was skipped.
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (slow recovery from backup)
+        - slow operation (recovery from backup, mitigation)
+      iso:
+        - Recoverability
+
+    item:
+      action: Reduce the size and growth rate of our events table (reprioritize work) (VAGUE)
+      target: Database table
+      goal: Ensure that one table isn't too large to inhibit restoration
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Data and data architecture
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: previously started
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: VAGUE
+      level: component interactions
+
+    memos:
+      # This is already well underway but is now one of our top priorities.
+      - Prioritization: Reprioritize, work that was underway
+  
+  AI-3:
+    # Worse, however, is that we may have lost some data from between the last good database backup and the time of the deletion. Newly created users and repositories are being restored, but pull request state changes and similar might be gone. [We will..] Begin storing binlogs to reduce data loss in the event of a future db restoration. The completion of #2 will help make this much easier.
+
+    motivation:
+      experience: Some data was lost when they restored from a database backupwindow
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - data (loss after restore from backup)
+      iso:
+        - Recoverability
+
+    item:
+      action: Store backups of logs to reduce data loss if db restore needed
+      target: Database backup systems
+      goal: Reduce data loss in the event of a restoration
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability (backups)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Add backup of database binary logs
+      level: component
+
+    memos:
+      - Ordering: of AI-2 first matters
+      - AI-2 completion will be complementary to this work, and make it easier to perform this one.
+
+

@@ -1,0 +1,228 @@
+#
+# 32.yaml | Yeller
+# http://yellerapp.com/posts/2014-08-04-postmortem1.html
+#
+# Several network partitions due to datacenter maintenance by a third party caused extensive processing delays and downtime to services like changing user account and billing data. A simple cluster restart resolved the issue, but they did not take this action for many hours.
+# 
+# Researcher Notes:
+#
+# Does AI-1 really split out into the first four AIs? The IR is written as if they share the same top-level goal of improving communication.
+
+IR-32:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # After a lot of investigation, and debugging attempts spanning the next 17 hours or so (until 0804 UTC), my hosting provider suggested that I try restarting the cluster. I had not undertaken this step because I was very convinced that the issue was on their end rather than mine.
+    - Human factors, being proven that theory established while debugging is wrong
+
+    # Where does Yeller go from here?
+    - AI-Title-Section: AIs are where the system "goes" from here, how it evolves.
+
+    # What Went Well?
+    - There is a section on lessons learned
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # I need to get better at outage communication. Yeller had nearly 19 hours of delayed processing, and I only posted a few status updates in that time. Next time, I’ll set a recurring alarm on my phone to post customer updates on a regular schedule - even if the updates is just “no changes, I’m still working to resolve the issue” - keeping customers informed during problems is a crucial task, and I clearly failed on it here. [.. rest of AIs in this block ..]
+
+    motivation:
+      experience: Only a few status updates were posted during the extended downtime
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (few)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Set a recurring alarm to post updates on a regular schedule during incidents
+      target: Customer updating process during incident response
+      goal: Ensure that customers have regular information
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-2:
+    # I need to get better at outage communication. Yeller had nearly 19 hours of delayed processing, and I only posted a few status updates in that time. [.. AI-1. .] As such, I’ve moved Yeller’s status page to statuspage.io - you can see the new status page here: http://www.yellerappstatus.com. [.. rest of AIs in this block ..]
+
+    motivation:
+      experience: Only a few status updates were posted during the extended downtime
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (few)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Move status page to 3rd party
+      target: Status page
+      goal: Ensure that customers have regular information
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      completed: true
+
+  AI-3:
+    # I need to get better at outage communication. Yeller had nearly 19 hours of delayed processing, and I only posted a few status updates in that time. [.. AI-1, AI-2 ..] I’ve also hooked statuspage up to my internal chat bot so that outage communication is more convenient in the future. [.. rest of AIs in this block ..]
+
+    motivation:
+      experience: Only a few status updates were posted during the extended downtime
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (few)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Hookup a bot to provide outage communication
+      target: Status page (bot that posts to)
+      goal: Ensure that customers have regular information
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication / Status Page (bot posting)
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    themes:
+      - automation (bot)
+
+    other:
+      completed: true
+
+  AI-4:
+    # I need to get better at outage communication. Yeller had nearly 19 hours of delayed processing, and I only posted a few status updates in that time. [.. rest of AIs in this block ..] Lastly, Yeller now displays the system status at the bottom of every page in the web UI (once you’re logged in), so you can tell if it has an issue:
+
+    motivation:
+      experience: Only a few status updates were posted during the extended downtime
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (few)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Display system status at the bottom of UI
+      target: Web app & status info deps
+      goal: Ensure that customers have regular information about on-going issues
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      completed: true
+
+  AI-5:
+    # There were two main impacts to customers. The first was processing delays on exactly 42 exceptions. Some of these exceptions took up to 7 hours to be processed and show up for users. These exceptions ran into riak write timeouts, and had to be manually reprocessed by me. [..] The processing delays caused by me having to manually reprocess exceptions needs to be improved. I’m investigating improved retry logic so that if Yeller does see a partition like this in the future, the system won’t need human intervention to process timing out exception writes.
+
+    motivation:
+      experience: Several processing delays that took hours to be reprocessed and required manual retries due to running into timeouts after a network partition
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action required (reprocess long running processing timeouts)
+        - limit hit (write timeouts, retry loop)
+        - blocking on timeout loop
+        - infrastructure disruption (network partition caused timeouts) # IR doesn't explain why timeouts occurred, though it seems likely attributable to network partitions
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Investigate improved retry logic
+      target: Data processing service retries & timeouts
+      goal: Ensure that human intervention isn't needed to process timing out exception writes, especially in network partition
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-6:
+    # After a careful rolling restart of the cluster (to minimize customer impact), the network partition was resolved (at 0930UTC). It is unclear at this time why this restart solved the partition - I suspect cached routes on some level (the ip addresses involved didn’t change), because the restart eliminated these caches it is (as far as I can tell) near impossible to figure out the root cause at this point. [..] Whilst rebooting the entire cluster did fix the issue, it also prevented finding the root cause - as whatever corrupt machine state caused the issue was wiped. In future outages, I will leave at least one machine with a bad state running (but removed from the load balancers), so that the root cause can be better determined.
+
+    motivation:
+      experience: As part of mitigating the network partition probably had bad cached data, they restarted the entire cluster
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - infrastructure disruption (network partition)
+        - data loss (restart of cluster, loss of state and debugging info)
+        - sacrifice made to recover quickly
+      iso:
+        - Recoverability
+
+    item:
+      action: Add machine preservation requirement to help determine root cause
+      target: Rebooting procedures during incident response
+      goal: Ensure that root cause can be determined after incident is mitigated
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Reliability / Recoverability
+        - Maintainability / Analysability # To debug issue in future
+      temporal: new
+      google-ai:
+        - prevent
+
+    memos:
+      - similar to IR-61.AI-1

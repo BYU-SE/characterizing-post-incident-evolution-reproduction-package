@@ -1,0 +1,125 @@
+#
+# 12.yaml | Instapaper
+# https://medium.com/making-instapaper/instapaper-outage-cause-recovery-3c32a7e9cc5f
+#
+# A critical RDS hosted MySQL database failed because a table exceeded the RDS instances 2TB file size limit (ext3 filesystem limit)
+#
+#
+# Researcher Notes:
+#
+
+IR-12:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    - AI-Section-Title: Section called "Action items"
+
+    # Once the service was back up and the data dumps completed, the next step was to import all of the dumps into an instance that wasn’t subject to the 2TB file size limit.
+
+    - Key-PAs: Key PA are often done as part of the mitigation/resolution of the incident
+
+    # Without knowledge of the pre-April 2014 file size limit, it was difficult to foresee and prevent this issue. As far as we can tell, there’s no information in the RDS console in the form of monitoring, alerts or logging that would have let us know we were approaching the 2TB file size limit, or that we were subject to it in the first place.
+
+    - Uncertainty: Unforeseeable, Unexpected, unexpectable, unpredicted, invisible and without warning
+    - Improving-Understanding: Unforseeable rhymes with this pattern
+
+    # While the information about the 2TB limitation wasn’t directly available to me, it’s my responsibility to understand the limitations of the technologies I’m using in my day-to-day operations, even if those technologies are hosted by another company.
+
+    - Accountability: Accountability and the need to be proactive in identifying limits
+
+    # We’ll continue to use Amazon’s Relational Database Service for now. While it’s frustrating to experience an issue without warning or visibility, RDS has been a reliable
+
+    - PA-Negative: Another example of mentioning a PA that the team will NOT do
+
+    # Neither of the above action items would have prevented this issue, but they’ll help accelerate our response times in the event of an outage and are good practices.
+    - PA-Mitigation-Acceleration: PAs accelerate response times rather than prevent issue
+    - Best-Practice: AIs are mentioned as good/best practices
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # After a long phone call with AWS support and discussing the limitation with Pinterest’s Site Reliability engineers, we understood [...] Pinterest SRE team guided us through [...] As part of our retrospective process at Pinterest, we’re defining a better workflow for system-wide Instapaper outages that escalate issues immediately to Pinterest’s Site Reliability Engineering team.
+
+    motivation:
+      experience: They needed to engage experts from other teams to help respond. And there were delays in engaging the best responders
+      lifecycle:
+        - Response / Triage
+      tags:
+        - human factors (knowledge, expertise, engage experts)
+        - delayed responders (needing to engage experts)
+        - on-call indirection
+      iso:
+        - Recoverability
+        - Operability (access to expertise)
+
+    item:
+      action: Change to direct (immediate) escalation
+      target: Alarming and paging (escalation)
+      goal: Engage experts more quickly (SREs)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Process / Incident response / Workflow
+      intended-effect:
+        - Reliability / Recoverability
+        - Interaction Capability / Operability (access to expertise & responsiveness during incident)
+      temporal: new
+      google-ai:
+        - mitigate future #/ decrease duration
+
+    other:
+      modification: Formalize workflow to escalate to SREs (of parent)
+      modification2: Either "replace or upgrade a component" or "rearchitect other aspects of the system"
+
+
+  AI-2:
+    # [Resolution involved multi-day database dump and rebuild because] MySQL instance failed with a critical filesystem issue that all of our backups were also subject to [...] Additionally, we’re going to be more aggressive with testing our MySQL backups. We used to test backups every three months, and now we’ll test every month.
+
+    motivation:
+      experience: They did not have a disaster recovery plan for this event and restoring from a database was a painful process. # [TODO] Is this right?
+      lifecycle:
+        - Response / Mitigation # [TODO] Was this the human side of things or the system side?
+        - Failure / Recovery # [TODO] Was this the human side of things or the system side?
+      tags:
+        - delayed recovery (painful and long restoration and rebuild)
+        - no plan
+        - tests (more frequent for incident recovery procedures)
+        - slow operation (restore from database backup)
+      iso:
+        - Recoverability
+
+
+    item:
+      action: Increase frequency of testing of backup (from quarterly to monthly)
+      target: Testing process for database backups
+      goal: Reliable backups for quicker recovery
+
+      action-type:
+        - evo / alter
+      target-type:
+        - SDLC / Testing
+      sts:
+        - Process / Testing activities and practices # / Backup database testing
+      intended-effect:
+        - Reliability / Recoverability ("help accelerate our response times")
+        - Reliability / Faultlessness (of backup process)
+      temporal: new
+      google-ai:
+        - mitigate future #/ decrease duration
+
+    other:
+      modification: Regularly test backup process (3X frequency)
+      level: component
+
+    memos:
+      - Could this be seen as a circular dependency connecting backup and prod

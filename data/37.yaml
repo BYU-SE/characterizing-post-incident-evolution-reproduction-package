@@ -1,0 +1,199 @@
+#
+# 37.yaml | Grafana Labs
+# https://grafana.com/blog/2019/07/24/how-a-production-outage-was-caused-using-kubernetes-pod-priorities/
+#
+# A production outage resulted from an important service (data ingestion) using a default priority (medium) rather than a correct priority (high) by Kubernetes Pod Priorities. It was not given enough resources to survive and newly introduced pods replaced older pods with the insufficient priority configured pods.
+# 
+#
+# Researcher Notes:
+#
+
+IR-37:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # The total length of the outage was 26 minutes. No data was lost; the ingesters succeeded in flushing all their in-memory data to long-term storage. During the outage, customers’ Prometheus servers buffered remote writes using the new WAL-based remote write code (written by Callum Styan at Grafana Labs) and replayed the failed writes after the outage.
+    - They had a number of things not go 'worse' because they had systems in place that weren't fragile. This type of issue could have been way worse
+
+    # This outage is not all bad news: Once given enough capacity, Cortex recovered automatically with no additional intervention. We also gained valuable experience using Grafana Loki, our new log aggregation system, to confirm the Ingesters exited gracefully.
+    - A number of positive experiences
+
+    # This blog post explains what happened, how we responded to it, and what we’re doing to ensure it doesn’t happen again.
+    - Similar: The it is what happened
+
+    # It is important that we learn from this outage and put in place steps to ensure it does not happen again.
+    - Similar: the "it" does not happen again.
+    - LFI is preventing re-occurrence
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [They recently introduced a priority classification, which directly led to the incident, and when systems did not specify a priority for their kubernetes pods they selected a default. This default happened to be lower for this service (the ingestion pods) than it should have been.] In hindsight we should not have made medium the default priority until we had added the high priority designation to the production Ingesters. We should also have rolled out the high priority designation to production Ingesters sooner. This has now been fixed. We hope that by publishing this blog post, others considering deploying Kubernetes Pod Priorities can learn from our mistakes.
+
+    motivation:
+      experience: They deployed a new prioritization configuration, which was missed in the default configuration for new customers and the configuration for already running pods, and so during a resize, important pods were interrupted causing cascading failure
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - defect (missed configuration for new customer pods, missed configuration for running pods)
+        - deployment (of prioritization with two defects)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Change a cluster's priority designation to high
+      target: Cluster resource allocation (ingestion service)
+      goal: Ensure that this service maintains the correct level of importance to the deployment/management service
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization (appropriate prioritization)
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Tune (default) priority classification (to "preempt")
+      activity: design, deploy
+      level: component
+
+    memos:
+      # We hope that by publishing this blog post, others considering deploying Kubernetes Pod Priorities can learn from our mistakes.
+      - Vicarious learning
+  
+  AI-2:
+    # We will be adding an extra layer of scrutiny to the deployment of any “extra” namespace objects, i.e. config that is global to the cluster. Going forward, changes like this will be reviewed by more people. In addition, this change was considered too minor for a design document – it was only discussed in a GitHub issue. All extra-namespace config changes will require a design document going forward.
+
+    motivation:
+      experience: The deployment of prioritizations was not reviewed by users, and was missed in important areas (leading to defects)
+      lifecycle:
+        - Failure / Inception
+        #- Pre-incident # [TODO] Check?
+      tags:
+        - defect (missed change in prioritization deployment)
+        - human factors (missed change, not reviewed by many people)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Add extra care for new configuration changes (by requiring review and design document)
+      target: Deployment process (for configuration)
+      goal: Ensure that any change is noticed by appropriate people
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Deployment
+      sts:
+        - Process / Deployment procedures
+      intended-effect:
+        - Reliability / Faultlessness
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Add human checks (design documents, reviews, etc)
+
+    themes:
+      - manual steps
+
+    memos:
+      # In addition, this change was considered too minor for a design document – it was only discussed in a GitHub issue.
+      - The issue centered around a change which was not noticed by those that needed to know, this AI seeks to rectify that.
+      - AI-1 and AI-2 are paired in that AI-1 corrects existing bug, and AI-2 ensures that bug is harder to reintroduce
+  
+  AI-3:
+    # It took a further ~10 minutes to diagnose and fix the out-of-memory (OOM) errors from our authenticating reverse proxies that sit in front of Cortex. This OOMing was caused by a >10x increase in QPS, we believe from overly aggressive retries from the client’s Prometheus servers. Finally, we will be automating the sizing of our frontend authenticating reverse proxy to prevent the OOMing behavior on overload that we saw, and [..AI-4..]
+
+    motivation:
+      experience: Overly aggressive retries caused OOMs (reverse proxies)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (retry storm and aggressive clients)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Automate the sizing of the reverse proxy for authentication
+      target: Network reverse proxy (authentication)
+      goal: Prevent the service from running out of memory
+
+      action-type:
+        - evo / add
+      target-type:
+        - Infrastructure / Network routing
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Flexibility / Scalability (automated)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Automate scaling of frontend (response to retries)
+      level: component
+
+
+  AI-4:
+    # It took a further ~10 minutes to diagnose and fix the out-of-memory (OOM) errors from our authenticating reverse proxies that sit in front of Cortex. This OOMing was caused by a >10x increase in QPS, we believe from overly aggressive retries from the client’s Prometheus servers. Finally, we will be [..AI-3..], and investigate the default backoff and scaling behavior of Prometheus to prevent the stampeding herd
+
+    motivation:
+      experience: Overly aggressive retries caused OOMs (reverse proxies)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (retry storm and aggressive clients)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Investigate the default backoff and scaling behavior
+      target: Hosted monitoring app retry & scaling strategy
+      goal: Prevent the stampeding herd behavior seen in the incident (overly aggressive retries)
+
+      action-type:
+        - formative / check # largely about checking assumptions
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization (backoff and scaling)
+        - Reliability / Fault tolerance
+        - Reliability / Faultlessness (well-behaved & backs off)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Fix issue with backoff strategy (thundering herd)
+      activity: investigate (retries & scaling)
+      level: component interactions
+
+    themes:
+      - support tool exacerbating
+
+    memos:
+      - Plan-To-Plan: No evolution as part of this AI.
+      - AI-3 and AI-4 address the same 'behavior' seen in the app (OOM) which was undesirable
+
+

@@ -1,0 +1,90 @@
+#
+# 71.yaml | Dropbox
+# https://blogs.dropbox.com/tech/2014/01/outage-post-mortem/
+#
+# Researcher Notes:
+#
+
+IR-71:
+
+  extractedBy: JS
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Incident-Life-Cycle / TODO (not to related to each other):
+      - AI-1 add safety check (addressing failure)
+      - AI-2 parallelize restore operation (addressing slow recovery)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1: 
+    # We’ve since added an additional layer of checks that require machines to locally verify their state before executing incoming commands. This enables machines that self-identify as running critical processes to refuse potentially destructive operations.
+
+    motivation:
+      experience: Maintenance operation applied to live servers due to script defect
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - manual action (maintenance upgrade used script with a defect)
+        - defect (in maintenance upgrade script, caused running machines to be shutdown)
+      iso:
+        - Faultlessness
+    
+    item:
+      action: Add check/verification step on servers
+      target: Infrastructure for database server
+      goal: Ensure maintenance is only performed on inactive servers
+
+      action-type:
+        - evo / add
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-2: 
+    # To speed up our recovery, we developed a tool that parallelizes the replay of binary logs. This enables much faster recovery from large MySQL backups. We plan to open source this tool so others can benefit from what we’ve learned.
+
+    motivation:
+      experience: Recovery was extended for several hours due to the large size of some databases
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - slow operation (recovery, replaying logs)
+        - delayed recovery (replaying logs is slow)
+      iso:
+        - Recoverability
+        - Time behavior
+    
+    item:
+      action: Add new tooling that parallelizes operation
+      target: Database backup and restore
+      goal: Speed up restore from back up operation
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Time behavior
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    memos:
+      - automated tools to improve recovery

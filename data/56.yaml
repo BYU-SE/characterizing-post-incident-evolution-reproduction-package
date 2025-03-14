@@ -1,0 +1,268 @@
+#
+# 56.yaml | Google
+# https://static.googleusercontent.com/media/www.google.com/en//appsstatus/ir/to3hkm2wc4v4xq7.pdf
+#
+# A certificate update issue caused an expiration leading to clients being unable to establish or reestablish connections.
+# 
+#
+# Researcher Notes:
+#
+#
+
+IR-56:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Incident-Life-Cycle / Monitor along the way:
+      - AI-1 catch before it becomes an issue
+      - AI-2 catch during
+
+    - Responder options / Respond better:
+      - AI-4 emergency deployments (quicker) 
+      - AI-5 emergency allocations 
+      - AI-6 training for above
+
+  memos:
+    # To guard against the issue recurring and to reduce the impact of similar events, we are taking the following actions:
+    - Similar: Exact and similar in the same sentence
+
+    - Lots of focus on mitigating the future, perhaps because they realized that this should have been fixed very quickly (just rotate certs). Delay was caused, perhaps, by human actions (e.g. diagnosis, fix) and automated systems (emergency deployment took 2 hours)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [There was an issue with updating certificate configurations and so a certificate expired inadvertently. We will] Configure additional proactive alerting for upcoming certificate expiration events
+
+    motivation:
+      experience: Issue (assumed defect) led to an inadvertent certificate expiration
+      lifecycle:
+        - Response / Detection # ("expired inadvertently")
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+        - defect (an issue with updating certificate configurations)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Add proactive alerting
+      target: Monitoring system for certificate configurations
+      goal: Detect upcoming certificate expirations before they happen to provide warning
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect
+
+    other:
+      modification: Expose upcoming certificate expirations (proactive)
+      level: component
+
+    memos:
+      - Similar: Condition, Proactive implies they can identify a "signature" for this failure condition
+
+  AI-2:
+    # [A certificate expired and clients were unable to establish or reestablish an SIP connection] Configure additional reactive alerting for TLS errors in Google Voice frontend systems.
+
+    motivation:
+      experience: After an inadvertent certificate expiration, clients were unable to establish or reestablish connections
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+        - propagation (failure to dependencies via hard dependency)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Add reactive alerting for TLS errors
+      target: Monitoring system for frontend systems (?)
+      goal: Alert on TLS errors
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect # its reactive alerting
+
+    other:
+      modification: Alarm on TLS errors (reactive)
+      level: component
+
+
+  AI-3:
+    # Due to an issue with updating certificate configurations, the active certificate in Google Voice frontend systems inadvertently expired at 2021-02-15 23:51:00, triggering the issue. [..] Improve automated tooling for certificate rotation and configuration updates.
+
+    motivation:
+      experience: Issue (assumed defect) led to an inadvertent certificate expiration
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+        - defect (an issue with updating certificate configurations)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Improve automated tooling for certificate rotation and configuration updates (VAGUE)
+      target: Automated certificate rotation and configuration update tooling
+      goal: Prevent the issue from occurring
+
+      action-type:
+        - evo / UNCLEAR
+      target-type:
+        - Fleets / Other
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / Operability (automated changes)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Automate certificate rotation & updates
+      level: component
+
+    memos:
+      - Running risks and approaching thresholds: there is no 'approaching'
+
+    themes:
+      - automation / fix missed updates (certificate rotation, configuration updates)
+
+  AI-4:
+    # [Emergency deployment still took 2 hours from initial rollout to completion] Utilize more flexible infrastructure for rapid deployment of configuration changes
+
+    motivation:
+      experience: Fix deployment took 2 hours to complete
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (slow to deploy)
+        - design factor (architecture)
+        - slow operation (mitigation - deploying)
+      iso:
+        - Recoverability
+
+    item:
+      action: Utilize a more flexible infrastructure (VAGUE)
+      target: Deployment infrastructure
+      goal: Reduce deploytime for emergency deployments
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Interaction Capability / Operability (rapid deployment)
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: More rapid deployment of configuration changes
+      activity: investigate, redesign
+      level: system
+
+    themes:
+      - ungraceful recovery (2hr deploy)
+    
+    memos:
+      - Duration of scenarios
+
+
+  AI-5:
+    # Update resource allocation systems to more efficiently provision emergency resources during incidents
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Update resource allocation systems for emergency resources (VAGUE)
+      target: Service resource allocation systems
+      goal: More efficiently provision emergency resources
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Performance Efficiency / Resource utilization (emergency resources)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: More efficiently provision emergency resources
+      activity: design, deploy
+      level: system
+
+    themes:
+      - ungraceful recovery
+
+    memos:
+      - Emergency resources: The distinction between normal and emergency resource utilization is interesting. In this case it is about the many clients trying to re-establish connections during the incident ("client immediately attempts to restore connectivity") and being unable to.
+
+  AI-6:
+    # Develop training and practice scenarios for emergency rollouts of Google Voice frontend systems and configurations
+
+    motivation:
+      experience: The diagnosis and fix took 2 hours to complete
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (slow to deploy)
+        - design factor (architecture)
+        - slow operation (mitigation - deploying)
+      iso:
+        - Recoverability
+
+    item:
+      action: Develop training and practice scenarios for emergency rollouts
+      target: Deployment strategies for emergency rollouts
+      goal: Improve response
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Deployment
+        - Incident response tools and process / Preparation # TODO: Consider
+      sts:
+        - Process / Mitigation practices
+      intended-effect:
+        - Interaction Capability / Operability (expertise with incident response)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Practice emergency rollouts (define training scenarios)
+      activity: design

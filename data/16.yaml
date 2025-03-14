@@ -1,0 +1,149 @@
+#
+# 16.yaml | Stack Overflow
+# http://stackstatus.net/post/96025967369/outage-post-mortem-august-25th-2014
+#
+# Description: "The cause was an incorrect change to network firewall configuration - specifically, iptables running on our HAProxy load balancers [...] The change had the effect of preventing the HAProxy systems from being able to complete a connection to our IIS web servers"
+#
+#
+# Researcher Notes:
+#
+#
+
+IR-16:
+  extractedBy: js
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Across-Software-Life-Cycle / Catch preproduction (move left):
+      - AI-1, AI-3 make bad code changes less likely
+      - AI-2 catch in staging (new staging env)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The cause was an incorrect change to network firewall configuration - specifically, iptables running on our HAProxy load balancers [...] a misleading comment in the iptables configuration led us to make a harmful change. We’ve already taken corrective action to prevent this kind of outage in the future (cleaning up the misleading comments!), and we have more planned;
+
+    motivation:
+      experience: A misleading comment in the iptables configuration led us to make a harmful change, blocking traffic
+      lifecycle:
+        - Failure / Inception
+        # - Pre-incident # While it happened before, it is like a defect which was activated.
+      tags:
+        - deployment (network configuration change, which blocked traffic)
+        - defect (blocking traffic configuration change)
+      iso:
+        - Modifiability # This is largely an explanation for why the deployment was bad, but also explains this exact change
+
+    item:
+      action: Clean up misleading comments about configuration semantics
+      target: Network firewall configuration (iptables on load balancers)
+      goal: Improve clarity to prevent harmful changes
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Modifiability (safe changes)
+      temporal: new
+      google-ai:
+        - prevent #/ avoid bad code changes
+
+    other:
+      modification: Fix misleading configuration comment
+      activity: clean up code
+      level: component
+
+    themes:
+      - configuration driven behavior
+
+    memos:
+      - Similar: Condition, Avoid similar (bad) configuration changes
+
+  AI-2:
+    # As soon as the active load balancer in our New York data center applied the change (about 25 minutes after the change was pushed) the outage began, and came to our attention immediately. We need a mechanism to access our sites on the secondary/inactive load balancers, so that we can apply these changes there first. This was already planned, but this outage has highlighted the need for it.
+
+    motivation:
+      experience: The harmful configuration defect deployed straight to prod load balancers rather than to secondary ones
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (global production deploy without staging)
+        - defect (blocking traffic configuration change)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Allow access to sites through secondary load balancers
+      target: Deployment environment (secondary LBs)
+      goal: Add staged rollout and validation of configuration changes
+
+      action-type:
+        - evo / add # or alter?
+      target-type:
+        - Deployment / Tooling
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Maintainability / Modifiability (modify order)
+      temporal: backlog # "highlighted the need"
+      google-ai:
+        - prevent #/ pre-production validation
+
+    other:
+      modification: Stage deployment using secondary LBs
+      level: component
+
+    memos:
+      - Prioritization: Reprioritize, off backlog
+
+  AI-3:
+    # Our current mechanism for managing these iptables rules is not as clear and understandable as it could be. We’ve been using the Puppet Labs firewall module for new applications which need to interact with iptables; we are planning to convert these configs (currently a static file managed by Puppet getting placed at /etc/sysconfig/iptables) to the module and doing a full audit for readability/cleanup of the rules while we’re at it, hopefully ending up with something much simpler to understand and modify.
+
+    motivation:
+      experience: Mechanism for changing network configuration changes was not clear and understandable, leading to defect being deployed
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (of defect because of confusing change mechanism)
+        - defect (blocking traffic configuration change)
+        - complexity
+        - human factors (hard to understand, clarity)
+      iso:
+        - Modifiability # This is largely an explanation for why the deployment was bad, but also explains this exact change
+
+    item:
+      action: Move (convert), audit and clean up configuration rules
+      target: Network firewall configuration (iptables on load balancers)
+      goal: Improve clarity to prevent harmful changes (readability, etc)
+
+      action-type:
+        - formative / check
+        - evo / alter
+      target-type:
+        - Infrastructure / Network firewall
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Modifiability (simplicity of code)
+      temporal: new
+      google-ai:
+        - prevent #/ avoid bad code changes
+
+    other:
+      modification: Fix configuration (cleaner, understandable)
+      activity: audit, convert, cleanup
+      level: component (configurations)
+
+    themes:
+      - configuration driven behavior
+      - unintended effects
+      

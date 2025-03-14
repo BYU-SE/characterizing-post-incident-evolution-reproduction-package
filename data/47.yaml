@@ -1,0 +1,176 @@
+#
+# 47.yaml | GoCardless
+# https://gocardless.com/blog/incident-review-service-outage-on-25-october-2020/
+#
+# The certificate for their secrets management service expired and the new certificate was not picked up, so connections to the secrets management service began to fail. A full API outage occurred within a few minutes.
+# 
+# Researcher Notes:
+#
+
+IR-47:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Fix-And-Tolerate / Specific and other failure modes:
+      # Even if we can ensure that Vault will never serve an expired certificate again, there are other failure modes, such as network partitions to Vault, that we don’t want to affect other running services. 
+      - AI-2 proposes to prevent specific failure
+      - AI-1 monitors for *any* failure in one component (previously unmonitored)
+      - AI-3 mitigates against *any* failure to access the vault 
+
+    - Responder options / Help for responders (some automation):
+      - AI-1 proposes to add monitoring
+      - AI-2 handles something that they had to do during the incident automatically
+
+  memos:
+    # This is an example where insufficient testing of these kinds of failure scenarios led to us re-learning this lesson the hard way.
+    - Relearning lessons
+
+    # The only manual intervention taken here was to explicitly 'delete' some pods that represented critical workloads, in order to short-circuit the 5-minute exponential backoff delay that they had reached. This returned the service to full health a couple of minutes earlier than it otherwise would have been.
+    - Previous learnings cause manual interventions in this incident
+
+    - They have divided their AIs into sections "Monitoring", "Prevention", and "Mitigation"
+
+    # Vault does not dynamically detect this change and must be manually restarted or reloaded via a SIGHUP signal in order to load the new certificate. This is automation that we didn't have in place, and so meant that our Vault server continued to serve the old certificate after it had been renewed, and then finally expired.
+    - Missing automation: Failure attributed to "automation that we didn't have in place" and an architecture that made Vault single point of failure and a large "blast radius". But the particular failure scenario was never tested ("insufficient testing of these kinds of failure scenarios).
+
+    # As we had disabled Vault retries within envconsul to combat other issues that we'd encountered, this caused all our healthy pods serving production traffic to die one-by-one, as their Vault leases expired and envconsul attempted a renewal. This left us with no capacity to serve requests, causing this incident.
+    - Previous learning and failing: Iterating based on failures might mean you have to fail multiple times to get it all correct. In this case, a particular setting (which featured in the incident) was a previous AI to "combat other issues that we'd encountered".
+
+    # Once Vault had restarted, the process of returning services to health was almost entirely hands-free. The self-healing properties of Kubernetes ensured that new containers were spun-up, and as soon as these became ready we were back to serving requests again.
+    - Graceful recovery: Something was manual (restart) but the rest was automatic ("entirely hands-free"), though in this case some steps were taken to hurry up the recovery ("short-circuit the 5-minute exponential backoff delay").
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [The Vault connection failures began 7 minutes before the automated monitoring detected the issue] Monitoring: While we already had monitoring in place for the expiration of TLS certificates used by our Layer-7 load balancers, this monitoring did not extend to the simple TCP load balancer that Vault uses. We've now fixed this gap and use the Blackbox exporter to regularly check these too.
+
+    motivation:
+      experience: Detection was delayed since there was no monitoring for the TCP load balancer's TLS certificate expiration
+      lifecycle:
+        - Response / Detection # Perhaps even forewarning
+      tags:
+        - limit hit (certificate expiration)
+        - cert expiration
+        - delayed detection (missing monitor for expiration for some TLS certs)
+        - missing monitoring
+      iso:
+        - Recoverability
+
+    item:
+      action: Actively monitor the load balancer in front of their secrets management service
+      target: Monitoring for load balancer
+      goal: Detect issues before they propagate into system failure
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect #/ monitoring (add missing metrics for load balancer)
+
+    other:
+      modification: Expose metrics from (previously unmonitored) load balancer
+      level: component interactions
+
+    memos:
+      - Filed under "Monitoring"
+
+  AI-2:
+    # [Vault server does not automatically detect changes to a certificate] Prevention: We'd like the Vault server to automatically reload its certificate if it has changed. As this feature is not available, we've deployed the Reloader controller to trigger rolling updates of Vault when the certificate data changes.
+
+    motivation:
+      experience: The server did not automatically detect changes to a certificate and reload
+      lifecycle:
+        - Failure / Inception 
+      tags:
+        - cert expiration
+        - limit hit (certificate expiration)
+        - missing automation
+        - manual action required (restart the server after cert change)
+      iso:
+        - Operability
+
+    item:
+      action: Add a reloader controller to trigger rolling updates of secrets manager when certificates change
+      target: Service with state (expirable certificates)
+      goal: Ensure certificate changes are used by the secrets manager
+
+      action-type:
+        - evo / add
+      target-type:
+        - General services
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / Operability (automation when data changes)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Automate updates on certificate changes
+      activity: deploy
+      level: component
+
+    memos:
+      - Filed under "Prevention"
+
+  AI-3:
+    # [A failure in envconsul, which can happen if Vault has a problem, will also take down the child process] Mitigation: Even if we can ensure that Vault will never serve an expired certificate again, there are other failure modes, such as network partitions to Vault, that we don’t want to affect other running services. For this, we are deploying a change to theatre-envconsul that will stop envconsul from managing the child process, while still allowing us to inject secret environment variables at container startup.
+
+    motivation:
+      experience: The parent process managed the child process, and when there was a failure it also took took down the child process
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (to dependent via hard dependency and parent process)
+        - hard dependency (on parent process)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Remove child process dependency on parent
+      target: Launcher (theatre-envconsul) for subprocess launcher (envconsul)
+      goal: Allow services to continue to run despite failure in dependency (envconsul)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance (decouple & tolerance to hard dependency failure)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Restructure hard dependency (eliminate automatic updates)
+      activity: deploy
+      level: component interactions
+
+    memos:
+      - Filed under "Mitigation"
+
+      # there are other failure modes [..] that we don't want to affect other running services
+      - Similar: Condition, Symptom, Prevent other failure modes from affecting things that depend on Vault
+      - Similar_Explicit: Failure mode involving critical dependency ('other failure modes')
+      - Similar to 7.4, 9.4, 30.2, 47.3
+
+      - Looking beyond specific failure
+
+

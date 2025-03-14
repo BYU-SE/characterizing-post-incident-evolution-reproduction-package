@@ -1,0 +1,110 @@
+#
+# 68.yaml | Sentry
+# https://blog.sentry.io/2015/07/23/transaction-id-wraparound-in-postgres
+#
+# Researcher Notes:
+#
+
+
+IR-68:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+
+    # Update: We’ve had many discussions since posting this and wanted to provide some additional context. vacuum_freeze_table_age had not been updated with our new configuration. We’ve removed this from the configuration above as it didn’t affect anything. maintenance_work_mem has a hard internal limit of 1GB for the relevant paths, and thus our 100GB of memory dedicated to it wasn’t even being used. This was confused by looking at the processes and seeing the large amount of memory they were using, though it was coming from the other relevant settings (shared_buffers and effective_cache_size).
+    - FDSE: follow up to AIs. In summary they did not perform one of the changes they said they were going to do (it didn't affect anything). One of the other changes was impossible due to a hard internal limit (and showed the uselessness of some of the memory they had originally given to it)
+
+    # While we feel pretty good about the progress we've made, ultimately we're going to be moving away from a SQL-based architecture. In the future, we'll talk more about that, but we're happy Postgres has taken us this far.
+    - Long term goal, even then though, we will still evolve these parts of the system while we have them.
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # By querying Postgres' internal statistics we identified that the autovacuums actually had finished on all of the relations except one. That relation however is a massive one. [..] We’ve got a few ideas on how to resolve this problem, but the biggest is splitting relations into multiple databases. This has its own set of challenges as connection management is a fairly complex thing, but it’s at the very least predictable and understood. Time is more favorable now as well and the machine tuning has provided lots of breathing room.
+
+    motivation:
+      experience: Autovacuum did not finish on a table with a complex relationship
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - automation failure (did not finish on large table)
+        - design factor (table complexity)
+      iso:
+        - Faultlessness # [TODO] Not sure?
+        - Recoverability
+
+    item:
+      action: Split relationships into multiple databases
+      target: Database table
+      goal: Make sure autovacuum completes next time
+
+      action-type:
+        - evo / alter # upgrade
+      target-type:
+        - Data stores / Data and data architecture
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+        - Performance Efficiency / Time behavior
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    themes:
+      - tradeoff (performance versus connection management complexity)
+
+    memos:
+      # We’ve got a few ideas on how to resolve this problem
+      - This is one idea among many. There are multiple AIs that probably will occur. Or at least many that could occur.
+      # Time is more favorable now as well and the machine tuning has provided lots of breathing room.
+      - Risk: They have lots of time before this re-occurs due to new machines with better specs and the fact that the vacuum just happened.
+
+  AI-2:
+    # We previously ran with too high a value for autovacuum_freeze_max_age and the default of 3 autovacuum workers. Additionally, we had been running with far too much delay in vacuuming which meant lower load on the system, but more idle time in maintenance. Our updated configuration: [..We will use this new configuration ..] There’s a number of other things we tune, though it’s all fairly standard these days.
+
+    motivation:
+      experience: Autovacuum had been running with a less than ideal configuration (potentially how we got here, and why it took so long)
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - automation failure (did not finish on large table)
+        - design factor (table complexity)
+      iso:
+        - Faultlessness # [TODO] Not sure?
+        - Recoverability # [TODO] Not sure?
+
+    item:
+      action: Use new configuration
+      target: Database tooling configuration
+      goal: Make sure autovacuum has optimal configuration to run normally and complete quickly
+
+      action-type:
+        - evo / alter # upgrade
+      target-type:
+        - Data stores / Queries and jobs
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      completed: some
+    
+    memos:
+      # Update: We've had many discussions since posting this and wanted to provide some additional context. vacuum_freeze_table_age had not been updated with our new configuration. We've removed this from the configuration above as it didn't affect anything. maintenance_work_mem has a hard internal limit of 1GB for the relevant paths, and thus our 100GB of memory dedicated to it wasn't even being used. This was confused by looking at the processes and seeing the large amount of memory they were using, though it was coming from the other relevant settings (shared_buffers and effective_cache_size).
+      - Some of these changes were not completed

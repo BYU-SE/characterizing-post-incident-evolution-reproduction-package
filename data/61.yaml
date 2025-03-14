@@ -1,0 +1,116 @@
+#
+# 61.yaml | Stack Exchange
+# http://stackstatus.net/post/156407746074/outage-postmortem-january-24-2017
+#
+# Stack Exchange network went into read-only mode for a few minutes as the SQL server triggered a bugcheck.
+# 
+#
+# Researcher Notes:
+#
+
+IR-61:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+  #   - Complete Replacement: Not immediately
+  #   - take down the server because you lose confidence its going to be good in the future (1)
+
+  memos:
+    # Currently we do not know why SQL Server caused a bugcheck, however logs indicate a potential bad DIMM. At our memory capacity (384GB), we opted to bring the network online rather than waiting for the memory dump to complete.
+    - Tradeoffs: Lose data about why it failed so that it can recover quicker
+    - Choosing to get back online quickly rather than do a memory dump and really find the root cause is likely to have altered the actions they were going to take.
+    
+
+    - incidental evolution: AI-2 took advantage of the outage to update version. Not needed by the outage.
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Currently we do not know why SQL Server caused a bugcheck, however logs indicate a potential bad DIMM. At our memory capacity (384GB), we opted to bring the network online rather than waiting for the memory dump to complete. We have since taken NY-SQL02 out of production and have it down for testing (including a memory test).
+
+    motivation:
+      experience: Rather than wait for a long memory dump, they chose to take the server out of commission after a potential hardware memory error
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - infrastructure disruption (hardware memory error triggered bug check)
+        - sacrifice made to recover quickly
+      iso:
+        - Recoverability
+
+    item:
+      action: Remove from production and perform tests
+      target: Database server
+      goal: UNCLEAR
+
+      action-type:
+        - formative / check
+        - evo / subtract
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Faultlessness (hardware level possibly)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Eliminate (if found defective) defective server
+      activity: investigate, test
+      level: component
+
+    memos:
+      - They do not know root cause yet with 100% confidence and perhaps that is OK
+      - Duration of scenarios
+
+  AI-2:
+    # [SQL cluster experienced an outage] We also took this opportunity to bring this SQL cluster up to 2016 SP1 CU1.
+
+    motivation:
+      experience: Rather than wait for a long memory dump, they chose to take the server out of commission after a potential hardware memory error.
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - infrastructure disruption (hardware memory error triggered bug check)
+        - opportunistic (opportunity to do a backlogged item)
+      iso:
+        - Availability
+
+    item:
+      action: Update to new version
+      target: Database cluster software
+      goal: UNCLEAR
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Infrastructure / System software
+      temporal: new
+      google-ai:
+        - prevent
+
+
+    other:
+      modification: Replace (upgrade) system version
+      activity: update
+      level: component
+
+    memos:
+      - Opportunistic: Probably was on the backlog or something and this was a good opportunity to get it done
+
+

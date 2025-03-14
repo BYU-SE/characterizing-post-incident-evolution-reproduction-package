@@ -1,0 +1,243 @@
+#
+# 6.yaml | Flowdock
+# https://web.archive.org/web/20200915190423/https://flowdock-resources.s3.amazonaws.com/legal/Flowdock-RCA-For-Incident-On-2020-04-21.pdf
+#
+# High load caused the application data to become hung due to high CPU usage. Database and application were restarted, and it was discovered that a table was corrupted. After a snapshot restore, there were still access problems which found that bad data was still in the cache. Another snapshot of a different database was restored and data was lost during the incident window. Failed integration calls resulted in the removal of integration and require manual action to be re-added.
+#
+# Researcher Notes:
+#
+
+IR-6:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # - Layers of protection (additive AIs):
+    #   # In our effort to ensure that we prevent such an occurrence from happening in the future, we are introducing the following additional measures ...
+    #   - AI-1 add additional headroom to DB
+    #   - AI-2 add more detailed DB monitoring to catch degradation
+    #   - AI-3 add fallback mechanism (secondary DB)
+
+  memos:
+    - Similar: Quote "In our effort to ensure that we prevent such an occurrence from happening in the future." Similar here is any incident that might cause the database to become overloaded. They are adding headroom (further from the tipping point they experienced), monitoring for signs of overload ("at more fine-grained time intervals"), and adding this scenario ("unrecoverable failure on the primary") to their current failover mechanism. 
+
+    # we are introducing the following additional measures in our application hosting and monitoring procedures that are already defined in accordance with security and data integrity best practices.
+    - Best-Practice: Didn't have this
+
+    - AI-Section-Title: Section called "Retrospection and Next Steps"
+    - Getting-Worse: Partially down, down, longer down (down 3 times, more serious each time)
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # The application experienced a sudden surge in user activities from multiple organizations. Increased h/w resources for database server to handle higher loads in addition to already increased resources
+
+    motivation:
+      experience: Spike in user traffic hangs database
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - high load (spike, overloads database)
+      iso:
+        - Scalability
+        - Capacity
+
+    item:
+      action: Increase database server hardware
+      target: Database hardware
+      goal: Gracefully handle increased load
+
+      action-type:
+        - evo / alter 
+      target-type:
+        - Data stores / Hardware and systems
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Performance Efficiency / Capacity
+      temporal: new # though adding even more
+      google-ai:
+        - prevent #/ scale up (hardware)
+      coding:
+        - Extend range (HW for higher loads)
+
+    other:
+      modification: Scale hardware resources (even further)
+      level: component
+    
+    themes:
+      - headroom (sudden surge)
+
+    memos:
+      - Do-Even-More: They had already done the action (increased resources available to systems) to prevent the event, but it was insufficient
+
+  AI-2:
+    # Improved monitoring of database server response time at more fine-grained time intervals
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Monitor database at more fine-grained time intervals
+      target: Monitoring system for database
+      goal: UNCLEAR (likely more timely notification)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - detect #/ monitoring (more fine-grained)
+      coding:
+        - Informing operation
+
+    other:
+      modification: Monitor latency metrics at more fine-grained time intervals
+      level: component
+
+
+  AI-3:
+    # Enhancing the current failover mechanism to switch the application to a secondary database in the event of an unrecoverable failure on the primary database server.
+
+    motivation:
+      experience: Responders manually restored from a backup due to data corruption (unrecoverable failure)
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action required (restore)
+        - delayed mitigation (manual action needed - handle unrecoverable error)
+      iso:
+        - Fail safe
+
+    item:
+      action: Enhance failover mechanism to use secondary database (add secondary?, VAGUE)
+      target: Database failover btw primary & secondary servers
+      goal: Failover to secondary in the event of an unrecoverable failure
+
+      action-type:
+        - evo / alter # enhance current mechanism
+      target-type: 
+        - Data stores / Backup and recovery
+      target-sys: element
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Safety / Fail safe
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Handle repeat event (unrecoverable failure)
+        - Localize failure (with failover)
+
+    other:
+      modification: Protective (failover) mechanism (enhance for scenario)
+      level: component (mechanism)
+
+
+  AI-4:
+    # Flowdock went down and was restarted [...] Inclusion of a Database Administrator in the emergency change approval committee to evaluate database failures before applications are restarted.
+
+    motivation:
+      experience: Application was restarted in response to failure when data was corrupted
+      lifecycle:
+        - Response / Mitigation
+        - Failure / Downstream Effects
+      tags:
+        - responder action (restarting application without data safety checks)
+        - propagation (bad data to clients, via cache)
+        - protection (no safety checks before restart)
+      iso:
+        - Operability
+        - Risk identification
+
+    item:
+      action: Include a DBA (expert) on emergency change approval committee
+      target: Incident response emergency change approval (procedures)
+      goal: Add expert to reduce likelihood of poor decision making
+      
+      action-type:
+        - evo / alter
+      target-type:
+        - SDLC / Maintenance
+      sts:
+        - Process / Development methodology # / Emergency change committee and procedures
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine (change approval)
+        - Informing operation (adding expertise)
+
+    other:
+      modification: Formalize response decision making process (add expert)
+
+    memos:
+      - Goal may also be avoid corrupting database
+      - Sometimes our automatic responses ("restart system") exacerbate failures
+
+  AI-5:
+    # A few internal users and customers still seemed to experience views of cross- organizational flows [...] as the user IDs generated in #2 were still in the cache [...] Process and technology improvements to invalidate logged-in user sessions and cached data, by providing them a maintenance notification in advance, when the application is restored or restarted.
+
+    motivation:
+      experience: To start from a clean state, they restarted the database, but the cache still had bad information
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (mitigation action did not work)
+        - data incorrectness
+        - cache preserved bad data
+      iso:
+        - Recoverability
+        - Confidentiality # Security
+        - Integrity # Security
+
+    item:
+      action: Add support for invalidating sessions and caches
+      target: Cache tooling and process for session cache
+      goal: Quicker incident recovery (avoid using invalid cache data)
+      
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Caching and buffering
+        - Maintenance / TODO
+      sts:
+        - Process / Maintenance procedures
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine
+        - Towards automation
+
+    other:
+      modification: Tooling to invalidate cache during recovery
+    
+    themes:
+      - response tooling
+      - ungraceful recovery
+
+    memos:
+      - Support needed when "application is restored or restarted"
+
+      # A few internal users and customers still seemed to experience views of cross- organizational flows [...] as the user IDs generated in #2 were still in the cache
+
+      - Caching and ungraceful recovery: Caching is important in many architectures, and its behavior in the context of incidents is the focus of multiple AIs. In this case, the cache delayed recovery because after initial mitigating steps were taken the cache contained out of date data (and this was not predicted) and no tooling was available. The AI is to add invalidation tooling.

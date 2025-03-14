@@ -1,0 +1,134 @@
+IR,Primary source,ID,Date of incident,Date of writeup,Impact category,Format (primary source),Name (from Organization)
+1,https://blog.coinbase.com/incident-post-mortem-june-1-2020-1cff2e51fa64,978,6/1/2020,6/6/2020,"Increased errors,Degraded service/performance",Company post,Coinbase
+2,https://www.reddit.com/r/RedditEng/comments/o4y4dq/rwallstreetbets_incident_anthology_reddits_open/,2720,1/27/2021,6/21/2021,"Increased errors,Degraded service/performance,Cascading failure",Company post,Reddit
+3,https://www.datadoghq.com/blog/2020-09-25-infrastructure-connectivity-issue/,258,9/24/2020,,Degraded service/performance,Company post,Datadog
+4,https://blog.asana.com/2016/09/yesterdays-outage/,969,9/8/2016,9/9/2016,Full production outage,Company post,Asana
+5,https://medium.com/autofarm-network/21-april-2021-venus-vaults-post-mortem-1518ae7399c6,2569,4/21/2021,4/21/2021,Degraded service/performance,Company post,Autofarm
+6,https://flowdock-resources.s3.amazonaws.com/legal/Flowdock-RCA-For-Incident-On-2020-04-21.pdf,192,4/22/2020,5/5/2020,Full production outage,Company post,Flowdock
+7,https://www.elastic.co/blog/elastic-cloud-incident-report-feburary-4-2019,235,2/4/2019,3/5/2019,"Partial production outage,Degraded service/performance",Company post,Elastic
+8,https://github.com/zalando-incubator/kubernetes-on-aws/blob/dev/docs/postmortems/jan-2019-dns-outage.md,108,1/7/2019,2/15/2019,"Increased errors,Partial production outage",Company post,Zalando
+9,https://blog.roblox.com/2021/10/update-recent-service-outage/,2719,10/28/2021,10/31/2021,Full production outage,Company post,Roblox
+10,https://www.honeycomb.io/blog/postmortem-rds-clogs-cache-refresh-crash-loops/,2438,10/14/2018,10/25/2018,Partial production outage,Company post,Honeycomb
+11,https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/,248,7/2/2019,7/12/2019,Full production outage,Company post,Cloudflare
+12,https://medium.com/making-instapaper/instapaper-outage-cause-recovery-3c32a7e9cc5f,253,2/9/2017,2/14/2017,Full production outage,Company post,Instapaper
+13,https://www.honeycomb.io/blog/incident-review-you-cant-deploy-binaries-that-dont-exist/,2013,7/9/2019,7/12/2019,Increased latency,Company post,Honeycomb
+14,https://blog.github.com/2018-10-21-october21-incident-report/,982,10/21/2018,10/21/2018,Degraded service/performance,Company post,GitHub
+15,https://github.com/zalando-incubator/kubernetes-on-aws/blob/dev/docs/postmortems/jun-2019-kubelet-qps.md,88,6/29/2019,6/29/2019,"Non-production outage,Degraded service/performance",Company post,Zalando
+16,http://stackstatus.net/post/96025967369/outage-post-mortem-august-25th-2014,202,8/25/2014,8/28/2014,Full production outage,Company post,Stack Overflow
+17,http://aws.amazon.com/message/4372T8/,143,6/4/2016,,Degraded service/performance,Company post,AWS
+18,https://slack.engineering/slacks-outage-on-january-4th-2021/,1990,1/4/2021,2/1/2021,Full production outage,Company post,Slack
+19,https://blog.cloudflare.com/cloudflare-dashboard-and-api-outage-on-april-15-2020/,976,4/15/2020,4/16/2020,Partial production outage,Company post,Cloudflare
+20,https://monzo.com/blog/2019/09/08/why-monzo-wasnt-working-on-july-29th,990,7/29/2019,8/9/2019,Full production outage,Company post,Monzo
+21,https://www.bungie.net/en/News/Article/48723,160,2/11/2020,2/12/2020,Full production outage,Company post,Bungie
+22,https://blog.cloudflare.com/a-post-mortem-on-this-mornings-incident/,977,6/21/2016,6/21/2016,Increased errors,Company post,Cloudflare
+23,https://aws.amazon.com/message/67457/,207,6/29/2012,7/2/2012,Degraded service/performance,Company post,AWS
+24,https://aws.amazon.com/message/5467D2/,199,9/20/2015,,Partial production outage,Company post,AWS
+25,https://aws.amazon.com/message/11201/,2647,11/25/2020,11/25/2020,"Degraded service/performance,Increased errors,Increased latency",Company post,AWS
+26,https://incident.io/blog/intermittent-downtime,10471,11/18/2022,11/30/2022,Full production outage,Company post,Incident
+27,https://keepingitclassless.net/2018/12/december-4-nre-labs-outage-post-mortem/,98,12/4/2018,,Full production outage,Company post,NRE Labs
+28,https://www.twilio.com/blog/2013/07/billing-incident-post-mortem-breakdown-analysis-and-root-cause.html,231,7/18/2013,7/23/2013,Full production outage,Company post,Twilio
+29,https://blog.pythonanywhere.com/189/,162,7/7/2020,7/9/2020,Full production outage,Company post,PythonAnywhere
+30,https://support.wazirx.com/hc/en-us/articles/900005490846-April-4-2021-Downtime-Analysis-Report,2552,4/4/2021,4/5/2021,Degraded service/performance,Company post,WazirX
+31,https://www.honeycomb.io/blog/incident-report-running-dry-on-memory-without-noticing/,2012,11/6/2019,11/21/2019,Partial production outage,Company post,Honeycomb
+32,http://yellerapp.com/posts/2014-08-04-postmortem1.html,218,8/4/2014,7/29/2014,Full production outage,Company post,Yeller
+33,https://www.jeli.io/blog/how-we-got-here,2731,9/28/2021,12/15/2021,Degraded service/performance,Company post,Jeli.io
+34,https://blog.cloudflare.com/how-cloudflare-erroneously-throttled-a-customers-web-traffic/,11191,2/2/2023,2/7/2023,Degraded service/performance,Company post,Cloudflare
+35,https://github.com/blog/2101-update-on-1-28-service-outage,1004,1/28/2016,1/29/2016,Full production outage,Company post,GitHub
+36,https://deno.com/blog/02-03-2021-outage-post-mortem,2539,3/2/2021,3/4/2021,Partial production outage,Company post,Deno
+37,https://grafana.com/blog/2019/07/24/how-a-production-outage-was-caused-using-kubernetes-pod-priorities/,79,7/19/2019,7/24/2019,Full production outage,Company post,Grafana Labs
+38,https://www.bluematador.com/blog/post-mortem-kubernetes-node-oom,73,6/15/2019,7/9/2019,Full production outage,Company post,Blue Matador
+39,https://static.googleusercontent.com/media/www.google.com/en//appsstatus/ir/ti76kvgai1yqajx.pdf,6,7/17/2020,,"Degraded service/performance,Increased errors",Company post,Google
+40,https://blog.jetstack.io/blog/gke-webhook-outage,111,9/5/2019,9/5/2019,"Non-production outage,Lost developer time",Company post,Jetstack
+41,http://azure.microsoft.com/blog/2014/11/19/update-on-azure-storage-service-interruption/,242,11/19/2014,11/19/2014,Full production outage,Company post,Microsoft
+42,https://help.salesforce.com/apex/HTViewSolution?urlname=Root-Cause-Message-for-Disruption-of-Service-on-NA14-May-2016&language=en_US,236,5/9/2016,5/16/2016,Full production outage,Company post,Salesforce
+43,http://blog.travis-ci.com/2019-04-11-incident-review-slow-booting-Linux-builds-outage,1001,3/27/2019,4/11/2019,Degraded service/performance,Company post,Travis CI
+44,https://aws.amazon.com/message/12721/,2730,12/7/2021,12/10/2021,Partial production outage,Company post,AWS
+45,https://news.gandi.net/en/2020/09/postmortem-regarding-the-network-incident-from-september-15th-2020-on-iaas-and-paas-fr-sd3-fr-sd5-and-fr-sd6/,1633,9/15/2020,9/18/2020,Partial production outage,Company post,Gandi
+46,https://www.pagerduty.com/blog/outage-post-mortem-april-13-2013/,132,4/13/2013,4/24/2013,Full production outage,Company post,PagerDuty
+47,https://gocardless.com/blog/incident-review-service-outage-on-25-october-2020/,2529,10/25/2020,11/2/2020,Full production outage,Company post,GoCardless
+48,https://github.com/blog/744-today-s-outage,980,11/15/2010,11/15/2010,Data loss,Company post,GitHub
+49,https://www.joyent.com/blog/manta-postmortem-7-27-2015,2435,7/27/2015,8/3/2015,Increased latency,Company post,Manta
+50,https://gocardless.com/blog/incident-review-api-and-dashboard-outage-on-10th-october/,984,10/10/2017,,Partial production outage,Company post,GoCardless
+51,https://blog.cloudflare.com/todays-outage-post-mortem-82515/,247,3/3/2013,3/3/2013,Full production outage,Company post,Cloudflare
+52,https://www.algolia.com/blog/engineering/may-30-ssl-incident/,2003,5/30/2020,6/2/2020,Partial production outage,Company post,Algolia
+53,http://googleblog.blogspot.com/2014/01/todays-outage-for-several-google.html,166,1/24/2014,1/24/2014,Full production outage,Company post,Google
+54,https://www.twilio.com/blog/february-26-service-disruption-update,2708,2/26/2021,3/3/2021,"Cascading failure,Full production outage",Company post,Twilio
+55,https://tech.trivago.com/2021/10/05/postmortem-removing-all-users-from-github.com/trivago/,2710,9/7/2021,10/5/2021,Lost developer time,Company post,Trivago
+56,https://static.googleusercontent.com/media/www.google.com/en//appsstatus/ir/to3hkm2wc4v4xq7.pdf,2516,2/15/2021,2/16/2021,"Partial production outage,Connection issues",Company post,Google
+57,https://zerodha.com/marketintel/bulletin/105569/postmortem-trading-and-hanging-orders-on-12th-april-2018,234,4/12/2018,4/13/2018,Partial production outage,Company post,Zerodha
+58,https://engineering.atspotify.com/2023/02/incident-report-spotify-outage-on-january-14-2023/,11190,1/14/2023,2/15/2023,Full production outage,Company post,Spotify
+59,http://blog.travis-ci.com/2017-09-20-sept-6-11-macos-outage-postmortem,1660,9/6/2017,9/20/2017,Full production outage,Company post,Travis CI
+60,https://www.traviscistatus.com/incidents/sxrh0l46czqn,215,2/5/2017,2/13/2017,Full production outage,Company post,Travis CI
+61,http://stackstatus.net/post/156407746074/outage-postmortem-january-24-2017,161,1/24/2017,1/26/2017,Data loss,Company post,Stack Exchange
+62,https://building.buildkite.com/outage-post-mortem-for-august-23rd-82b619a3679b#.2lh0fawla,1629,8/22/2016,8/23/2016,Partial production outage,Company post,Buildkite
+63,https://about.gitlab.com/2017/02/10/postmortem-of-database-outage-of-january-31/,251,1/31/2017,2/10/2017,"Data loss,Degraded service/performance",Company post,GitLab
+64,https://www.traviscistatus.com/incidents/khzk8bg4p9sy,214,8/4/2015,8/10/2015,Increased latency,Company post,Travis CI
+65,http://blog.travis-ci.com/2018-01-31-build-outage-postmortem,1659,1/16/2018,1/31/2018,Partial production outage,Company post,Travis CI
+66,http://aws.amazon.com/message/680587/,225,12/24/2012,,Degraded service/performance,Company post,AWS
+67,https://honeycomb.io/blog/2017/10/bitten-by-a-kafka-bug---postmortem/,986,10/17/2017,10/18/2017,Partial production outage,Company post,Honeycomb
+68,https://blog.sentry.io/2015/07/23/transaction-id-wraparound-in-postgres,191,7/20/2015,7/24/2015,Partial production outage,Company post,Sentry
+69,https://wikitech.wikimedia.org/wiki/Incident_documentation/2021-07-26_ruwikinews_DynamicPageList,2672,7/26/2021,7/26/2021,Partial production outage,Company post,Wikimedia Foundation
+70,https://medium.com/square-corner-blog/incident-summary-2017-03-16-2f65be39297#.fcxt7qyhs,1656,3/16/2017,3/18/2017,Full production outage,Company post,Square
+71,https://blogs.dropbox.com/tech/2014/01/outage-post-mortem/,196,1/10/2014,1/12/2014,Full production outage,Company post,Dropbox
+72,https://www.reddit.com/r/announcements/comments/4y0m56/why_reddit_was_down_on_aug_11/,217,8/11/2016,,Full production outage,Company post,Reddit
+73,https://status.heroku.com/incidents/2110,8,10/7/2020,10/7/2020,Connection issues,Company post,Heroku
+74,https://hacks.mozilla.org/2019/07/add-ons-outage-post-mortem-result/,228,5/4/2019,7/12/2019,Full production outage,Company post,Mozilla
+75,https://www.chef.io/blog/2014/07/10/supermarket-intermittent-unresponsiveness-postmortem/,249,7/8/2014,7/10/2014,Degraded service/performance,Company post,Chef
+76,https://dev.to/devteam/incident-retro-failing-comment-creation-erroneous-push-notifications-55dj,2676,7/9/2021,7/14/2021,"Partial production outage,Degraded service/performance",Company post,DEV
+77,https://blog.heroku.com/how-i-broke-git-push-heroku-main,224,9/3/2020,10/1/2020,Full production outage,Company post,Heroku
+78,https://blog.cloudflare.com/how-and-why-the-leap-second-affected-cloudflare-dns/,208,1/1/2017,1/2/2017,Full production outage,Company post,Cloudflare
+79,https://blog.roblox.com/2022/01/roblox-return-to-service-10-28-10-31-2021/,2739,10/28/2021,1/20/2022,Full production outage,Company post,Roblox
+80,https://www.epicgames.com/fortnite/en-US/news/postmortem-of-service-outage-at-3-4m-ccu,210,2/4/2018,2/8/2018,Full production outage,Company post,Epic Games
+81,https://engineering.fb.com/2021/10/05/networking-traffic/outage-details/,2706,10/4/2021,10/4/2021,Full production outage,Company post,"Facebook,WhatsApp,Instagram"
+82,http://stackstatus.net/post/115305251014/outage-postmortem-march-31-2015,194,3/31/2015,4/2/2015,Full production outage,Company post,Stack Exchange
+83,https://news.gandi.net/en/2020/01/postmortem-of-the-failure-of-one-hosting-storage-unit-at-lu-bi1-on-january-8-2020/,1634,1/8/2020,1/27/2020,Partial production outage,Company post,Gandi
+84,https://github.blog/2019-07-23-july-22-incident-update/,983,7/22/2019,7/23/2019,Degraded service/performance,Company post,GitHub
+85,https://metrist.io/blog/how-we-found-azures-unannounced-breaking-change/,2762,9/14/2022,10/13/2022,Partial production outage,Company post,Metrist
+86,https://allegro.tech/2018/08/postmortem-why-allegro-went-down.html,137,7/18/2018,8/31/2018,Full production outage,Company post,Allegro
+87,https://keepthescore.co/blog/posts/deleting_the_production_database/,989,10/17/2020,10/17/2020,Data loss,Company post,keepthescore
+88,https://aws.amazon.com/message/65648/,182,4/21/2011,4/29/2011,Degraded service/performance,Company post,AWS
+89,https://github.blog/2021-09-01-github-availability-report-august-2021/,2694,8/10/2021,9/1/2021,"Partial production outage,Cascading failure",Company post,GitHub
+90,http://aws.amazon.com/message/2329B7/,149,8/7/2014,,Degraded service/performance,Company post,AWS
+91,https://www.honeycomb.io/blog/incident-review-shepherd-cache-delays,2754,9/28/2022,10/18/2022,"Full production outage,Partial production outage,Increased errors,Increased latency",Company post,Honeycomb
+92,https://blog.cloudflare.com/cloudflare-outage-on-june-21-2022/,2751,6/21/2022,6/21/2022,Full production outage,Company post,Cloudflare
+93,https://aws.amazon.com/message/41926/,1129,2/28/2017,,Degraded service/performance,Company post,AWS
+94,https://community.secondlife.com/blogs/entry/2550-the-road-to-downtime-was-paved-with-good-intentions/,996,5/13/2019,5/17/2019,Full production outage,Company post,Second Life
+95,https://www.joyent.com/blog/postmortem-for-outage-of-us-east-1-may-27-2014/,2436,5/27/2014,5/28/2014,Partial production outage,Company post,Joyent
+96,https://slack.engineering/slacks-incident-on-2-22-22/,2748,2/22/2022,4/26/2022,Partial production outage,Company post,Slack
+97,https://zerodha.com/marketintel/bulletin/229363/post-mortem-of-technical-issue-august-29-2019,209,8/29/2019,8/29/2019,Full production outage,Company post,Zerodha
+98,https://securityboulevard.com/2020/09/inadvertent-routing-error-causing-major-outage/,2011,9/29/2020,9/30/2020,Partial production outage,Company post,Radware
+99,https://observablehq.com/@observablehq/database-outage-blog-post-may-18-2021,2605,5/18/2021,5/21/2021,Degraded service/performance,Company post,Observable
+100,https://medium.com/square-corner-blog/incident-summary-2017-03-16-2f65be39297,171,3/16/2017,3/18/2017,Full production outage,Company post,Square
+101,https://hacks.mozilla.org/2022/02/retrospective-and-technical-details-on-the-recent-firefox-outage/,2740,1/13/2022,2/2/2022,Full production outage,Company post,Mozilla
+102,https://www.epicgames.com/fortnite/en-US/news/playground-ltm-postmortem,2434,6/27/2018,8/6/2018,Degraded service/performance,Company post,Epic Games
+103,https://www.reddit.com/r/RedditEng/comments/o4yb4z/rwallstreetbets_incident_anthology_more_data_more/,2721,1/28/2021,6/21/2021,"Increased errors,Degraded service/performance,Cascading failure",Company post,Reddit
+104,https://bunny.net/blog/the-stack-overflow-of-death-dns-collapse/,2640,6/22/2021,6/22/2021,Full production outage,Company post,Bunny
+105,https://blog.travis-ci.com/2018-04-03-incident-post-mortem,186,3/13/2018,4/3/2018,Full production outage,Company post,Travis CI
+106,https://honeycomb.io/blog/2017/08/our-first-outage/,987,8/19/2017,8/21/2017,Full production outage,Company post,Honeycomb
+107,https://honeycomb.io/blog/2018/05/rds-performance-degradation---postmortem/,985,5/3/2018,5/8/2018,Partial production outage,Company post,Honeycomb
+108,http://stackstatus.net/post/147710624694/outage-postmortem-july-20-2016,229,7/20/2016,7/20/2016,Full production outage,Company post,Stack Exchange
+109,https://medium.com/preply-engineering/dns-postmortem-e169efd45afd,115,2/28/2020,5/4/2020,Degraded service/performance,Company post,Preply
+110,https://github.com/blog/2106-january-28th-incident-report,177,1/28/2016,2/3/2016,Increased errors,Company post,GitHub
+111,https://www.elastic.co/blog/elastic-cloud-january-18-2019-incident-report,183,1/18/2019,1/31/2019,Degraded service/performance,Company post,Elastic
+112,https://github.blog/2021-09-01-github-availability-report-august-2021/,2695,8/10/2021,9/1/2021,Increased errors,Company post,GitHub
+113,https://blog.travis-ci.com/2016-09-30-the-day-we-deleted-our-vm-images/,246,8/9/2016,9/30/2016,Full production outage,Company post,Travis CI
+114,https://www.honeycomb.io/wp-content/uploads/2022/09/Incident-Review-_-Working-as-Designed-But-Still-Failing.pdf,2752,8/1/2022,9/9/2022,Partial production outage,Company post,Honeycomb
+115,http://blog.npmjs.org/post/147012483540/package-tarball-read-outage-today,992,7/6/2016,7/6/2016,Partial production outage,Company post,NPM
+116,https://gitlab.com/gitlab-com/gl-infra/production/-/issues/4837,2630,6/8/2021,6/8/2021,"Degraded service/performance,Partial production outage",Company post,GitLab
+117,https://cdn.auth0.com/blog/Detailed_Root_Cause_Analysis_(RCA)_4-2021.pdf,2568,4/20/2021,4/29/2021,"Full production outage,Cascading failure",Company post,Auth0
+118,http://www.epicgames.com/fortnite/en-US/news/postmortem-of-service-outage-4-12,1632,4/11/2018,4/26/2018,Full production outage,Company post,Epic Games
+119,https://mars.nasa.gov/technology/helicopter/status/290/work-progresses-toward-ingenuity-s-first-flight-on-mars/,2566,4/9/2021,4/12/2021,Non-production outage,Company post,NASA
+120,https://community.secondlife.com/blogs/entry/2901-the-sunday-that-was-not-a-fun-day/,997,10/27/2019,10/30/2019,"Increased latency,Increased errors",Company post,Second Life
+121,https://blog.rust-lang.org/inside-rust/2020/02/26/crates-io-incident-report.html,979,2/20/2020,2/26/2020,Full production outage,Company post,Crates.io
+122,https://azure.microsoft.com/en-us/blog/summary-of-windows-azure-service-disruption-on-feb-29th-2012/,154,2/29/2012,3/9/2012,Full production outage,Company post,Microsoft
+123,https://www.epicgames.com/fortnite/en-US/news/postmortem-of-service-outage-at-3-4m-ccu,2437,2/3/2018,2/8/2018,Full production outage,Company post,Epic Games
+124,https://blog.cloudflare.com/cloudflare-outage-on-july-17-2020/,975,7/17/2020,7/18/2020,Partial production outage,Company post,Cloudflare
+125,https://cloud.google.com/blog/topics/inside-google-cloud/an-update-on-sundays-service-disruption,1636,6/2/2019,6/3/2019,Degraded service/performance,Company post,Google
+126,https://medium.com/xandr-tech/2013-09-17-outage-postmortem-586b19ae4307,176,9/17/2013,9/17/2013,"Full production outage,Degraded service/performance",Company post,AppNexus
+127,https://m.signalvnoise.com/postmortem-on-the-read-only-outage-of-basecamp-on-november-9th-2018/,238,11/9/2018,11/12/2018,Full production outage,Company post,Basecamp
+128,https://labs.spotify.com/2013/06/04/incident-management-at-spotify/,221,4/27/2013,6/4/2013,"Increased latency,Partial production outage",Company post,Spotify
+129,https://us.forums.blizzard.com/en/d2r/t/diablo-ii-resurrected-outages-an-explanation-how-we%E2%80%99ve-been-working-on-it-and-how-we%E2%80%99re-moving-forward/28164,2714,10/9/2021,10/14/2021,"Degraded service/performance,Data loss",Company post,Blizzard
+130,https://docs.google.com/document/d/1ScqXAdb6BjhsDzCo3qdPYbt1uULzgZqPO8zHeHHarS0/preview?sle=true&hl=en&forcehl=1#heading=h.dfbilqgnc5sf,223,7/8/2014,7/8/2014,Full production outage,Company post,GitLab
+131,https://engineering.atspotify.com/2022/03/incident-report-spotify-outage-on-march-8/,2745,3/8/2022,3/11/2022,Partial production outage,Company post,Spotify
+132,https://www.datadoghq.com/blog/2023-03-08-multiregion-infrastructure-connectivity-issue/,12020,3/8/2023,5/16/2023,Full production outage,Company post,Datadog
+133,https://monzo.com/blog/2019/06/20/why-bank-transfers-failed-on-30th-may-2019/,991,5/30/2019,6/20/2019,Degraded service/performance,Company post,Monzo

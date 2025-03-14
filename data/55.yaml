@@ -1,0 +1,166 @@
+#
+# 55.yaml | Trivago
+# https://tech.trivago.com/2021/10/05/postmortem-removing-all-users-from-github.com/trivago/
+#
+# A user synchronization mechanism between active directory and GitHub meant that when a security group was deleted accidentally, 430 employees lost access to GitHub.
+# 
+#
+# Researcher Notes:
+#
+
+IR-55:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - Over time / First-Fast-Then-Better (Make it safe then eliminate, two step):
+      - AI-2 make manual operation less error prone
+      - AI-3 automate operation all together (obviating AI-2)
+
+    - Maintenance safety / Reduce triggering risk (human error):
+      - AI-2 preventive measures to ensure mistake can't be made as easily
+      - AI-3 remove manual operations (automate)
+
+  memos:
+    # To learn from these failures, a retrospective is helpful to get to the root of this problem.
+    - Purpose of retrospective
+
+    # The lessons learned and knowledge shared by a single post mortem make it an incredible source of information, and an essential part of our transparent engineering culture.
+    - Musings on blameless postmortem
+
+    - AI-Section-Title: Section was called "Corrective Actions"
+
+    - Risk: Human operations are risky, many AIs relate to reducing the risk of human operator making mistakes
+
+    - Automation and human error: The goal of this AI is to automate an action that (because it was done incorrectly) triggered the incident. The manual version led to "a human error due to a repetitive task in combination with missing concentration." The pattern described above is basically a two step process to avoid the same triggering event (1) make it less easy to accidentally perform the destructive operation, (2) automate the intended operation completely so that users don't have to do the "repetitive task" that was accidentally done wrong.
+
+    # While engineering, we fix bugs, create new systems, build workflows and establish processes. Our job is to change things. Changing things can involve mistakes that ultimately lead to the failure of a particular system
+    - Change (in particular mistakes) can cause incidents
+
+    # Has sections Corrective Actions, Lessons Learned and subsections What went well, Where we got lucky, What did not go well
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # [An AzureAD security group was deleted and there is no way to restore the group. It was unclear who was removed which made restoration take longer] Backups: Create a regular and automated backup of AzureAD security group membership.
+
+    motivation:
+      experience: An employee deleted security group instead of AAD user account being removed from group and there was no way to restore the group
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - human factors (mistake, accidental data deletion, consequences of)
+        - data (deletion)
+        - backups (missing)
+      iso:
+        - Operability
+        - User error protection
+
+    item:
+      action: Add regular and automated backup of active directory groups
+      target: Database backup of security groups (active directory groups)
+      goal: Be able to quickly recover
+
+      action-type:
+        - evo / add
+      target-type:
+        - Data stores / Backup and recovery
+      target-sts: process and secondary
+      target-sys: element
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Automate security group backup (regular)
+
+
+  AI-2:
+    # [Human error resulted in deleting the group rather than a user] Access and roles: Review all users and their respective access to AAD. Think about establishing more granular permissions and require re-login to a different account to execute destructive actions.
+
+    motivation:
+      experience: An employee deleted security group instead of AAD user account being removed from group
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - human factors (mistake, accidental data deletion, consequences of)
+        - data (deletion)
+      iso:
+        - Operability
+        - User error protection
+
+    item:
+      action: Review access, permissions to active directory and consider more restrictions
+      target: Active directory (access control)
+      goal: Prevent human error
+
+      action-type:
+        - formative / check
+      target-type:
+        - General services # access control
+        - Maintenance / TODO
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: More granular permissions (harder to make mistake)
+      activity: audit
+
+    memos:
+      - This is a "what should we do next" type question. Evaluating risk
+
+  AI-3:
+    # [To get access to the GitHub org, employees had to create a ticket and manual work was needed] Automation: Automate the Rights Management ticket process with a self-service portal or similar.
+
+    motivation:
+      experience: To regain access to the organization after the data was deleted accidentally, employees had to create a ticket
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - human factors (mistake, accidental data deletion, consequences of)
+        - manual action required (to restore access)
+        - data (deletion)
+      iso:
+        - Operability
+        - User error protection
+
+    item:
+      action: Automate access to version control by creating (potentially a service portal)
+      target: Active directory service portal
+      goal: Eliminate human operations which are risky
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services # access control
+        - Maintenance / TODO
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User error protection
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Automate tasks to avoid human error (ticket driven process)
+
+    memos:
+      - Commitment: Wishy-washy language in that they don't know for sure what they are going to do
+      - Human operations are risky

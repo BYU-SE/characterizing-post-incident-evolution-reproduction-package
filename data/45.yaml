@@ -1,0 +1,96 @@
+#
+# 45.yaml | Gandi
+# https://news.gandi.net/en/2020/09/postmortem-regarding-the-network-incident-from-september-15th-2020-on-iaas-and-paas-fr-sd3-fr-sd5-and-fr-sd6/
+# 
+# During maintenance, an error in the architecture and configuration caused layer 2 network loops to be introduced and interrupting services twice in one day. (about 20 minutes in total)
+# 
+# Researcher Notes:
+#
+
+IR-45:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+
+    - In general about this IR, it is pretty shallow. Almost an observation that they did something wrong (perhaps because they were not careful), and that they will simply use more care in the future.
+    
+    # Because of an incorrect assumption regarding the architecture that we have on our datacenters: FR-SD3, FR-SD5, and FR-SD6. The architecture design for these datacenters was conceived so that they would be independent.
+    - RCA a good way to identify assumptions that were incorrect, including specifying what is their intention regardless of correctness.
+
+    
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Short term, to finish the network maintenance. Completion of the migration while taking the restrictions of the extended L2 network into account.
+
+    motivation:
+      experience: Due to an error in the architecture and configuration, a layer 2 network loop was introduced during maintenance operations.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (to replace hardware)
+        - infrastructure disruption (caused by maintenance action and an error in architecture and configuration)
+        - defect (configuration and architecture, led to dependency between two supposedly isolated networks)
+      iso:
+        - Faultlessness
+        - Co-existence # [TODO]: Not sure
+
+    item:
+      action: Carefully complete migration, considering restrictions of network
+      target: Customer instances
+      goal: Use care to not introduce the loop again during this maintenance
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Instance
+      sts:
+        - Tech / Infra
+      temporal: new
+      google-ai:
+        - prevent
+      
+    other:
+      scope: "short term"
+
+  AI-2:
+    # Mid term. Migration of the instances still using this extended L2 network so it can be removed cleanly.
+
+    motivation:
+      experience: Due to an error in the architecture and configuration, a layer 2 network loop was introduced during maintenance operations.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - maintenance action (to replace hardware)
+        - infrastructure disruption (caused by maintenance action and an error in architecture and configuration)
+        - defect (configuration and architecture, led to dependency between two supposedly isolated networks)
+      iso:
+        - Faultlessness
+        - Co-existence # [TODO]: Not sure
+
+    item:
+      action: Completely migrate all instances using the extended L2 network
+      target: Customer instances
+      goal: Make sure customers instances are all on a single data center
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Instance
+      sts:
+        - Tech / Infra
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      scope: "Mid term"

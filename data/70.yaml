@@ -1,0 +1,360 @@
+#
+# 70.yaml | Square
+# https://medium.com/square-corner-blog/incident-summary-2017-03-16-2f65be39297
+#
+# Researcher Notes:
+#
+
+IR-70:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    - UNKNOWN??:
+      - AI-0 fix retry configuration (mitigation)
+      - AI-2 check other retry places
+
+  memos:
+    # This postmortem document aims to communicate the root cause of this outage, document the steps that we took to diagnose and resolve the outage, and share actions that we are taking to ensure that we are properly defending our customers from service interruptions like this in the future.
+    - Purpose of IR document
+
+    # Though this was promising, our engineering processes dictate that we do not stop exploring solutions until we have a confirmed fix.
+    - How Incident Analysis is done
+
+    # We gathered information until 4:30PM, at which point we held a post-mortem meeting and discussed what went well and poorly in our response. Overall, our processes for triaging the issue worked as intended, but the thorny nature of this problem meant that they did not drive the quick resolution that we are used to. We feel that improvement in in-app messaging would have benefited our customers. We experienced some small delays in triage due to the current setup in our workroom. We took several action items, listed below, that we believe will address these issues. Bolded items directly remediate the technical root cause of the outage. Items not in bold are opportunities that we identified to improve the resilience of our systems and efficacy of our processes.
+    - AIs are related to the experience that was judged to be different from the expectation (reference point) and can be split among direct root cause remediations and improving resilience
+  
+
+  ######################################
+  # AIs
+  ######################################
+
+
+  # Merchant Identity team: (AI-1 through AI-3)
+
+  AI-1: 
+    # Determine if the single datacenter Roster outage exacerbated Multipass-Redis retries and if there are additional dependencies we need to break between Multipass and Roster.
+
+    motivation:
+      experience: Responders restarted multipass but it did not restore service # Our theory was that Roster put Multipass into a bad state and that restarting it would restore service. This theory was proven false.
+      lifecycle:
+        - Failure / Recovery
+      tags:
+        - human factors (bad theory during response tested and proven false)
+      iso:
+        - Faultlessness
+    
+    item:
+      action: Investigate Roster outage for unwanted dependencies
+      target: Dependencies btw identity & authorization (backed by Redis) service
+      goal: Look for similar risks
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - investigate
+      coding:
+        - Isolate failure
+
+    themes:
+        - Decoupling (potentially)
+
+    memos:
+      - Similar: Looking for other dependencies which are unwanted. This was because their theory about isolation was proven false
+
+
+  
+  AI-2: 
+    # Identify other areas where retry logic is used and audit them to ensure that they aren’t vulnerable to the same flaw.
+
+    motivation:
+      experience: Datacenter retry configuration exacerbated issues
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (high retries and missing backoff strategy led to feedback loop)
+        - limit hit (CPU)
+        - defect (high retry configuration)
+        - risk of outage (similar excessive retries)
+      iso:
+        - Faultlessness
+
+    item:
+      action: Identify and audit retry logic
+      target: Services' retry strategies (broadly)
+      goal: Look for similar risks
+
+      action-type:
+        - formative / check
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency interaction
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Keep within range (missing backoff)
+        - Address widely (where else might ...)
+
+    memos:
+      - Similar: Locality, Looking for other places which may be vulnerable to same retry issue
+
+  
+  AI-3: 
+    # Audit cgroup constraints to ensure that the limits we place on our applications are correct and reasonable.
+
+    motivation:
+      experience: Cgroups limited the amount of resources used by the application successfully
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - limit bounds (soft limits)
+        - risk of outage (similar unbounded limits)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Audit and correct resource configuration settings if needed
+      target: App resource limitation constraints (cgroup)
+      goal: Ensure configurations are correct and reasonable
+
+      action-type:
+        - formative / check
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      activity: Tuning
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Extend range and maybe also reduce (multi-tenancy constraint tuning)
+
+    memos:
+      - Similar: Locality, Risk of other places where the resource limits may be incorrect
+
+
+  # Payments team: (AI-4 through AI-5)
+
+  AI-4: 
+    # Meet with adjacent teams to re-affirm SLAs between services.
+
+    motivation:
+      experience: Failure propagated to adjacent services
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - propagation (failure from dependency via hard dependency)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Meet with adjacent teams
+      target: Engineering teams of dependencies
+      goal: Ensure SLAs are in place and satisfied
+
+      action-type:
+        - formative / other # investigative
+      target-type:
+        - Other
+      sts:
+        - People
+      temporal: new
+      google-ai:
+        - mitigate this
+      coding:
+        - Isolate failure (probably)
+
+
+  AI-5: 
+    # We feel that improvement in in-app messaging would have benefited our customers. Meet with iOS/Android Point of Sale teams to discuss more effective in-app messaging of outages.
+
+    motivation:
+      experience: Failure was communicated to customers only through the status page (which was slow and broken at some points), and not the app
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (slow, broken at points, indirect)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Meet with team
+      target: Engineering teams for PoS
+      goal: Discuss outage communication protocols
+
+      action-type:
+        - formative / other # investigative
+      target-type:
+        - Other
+      sts:
+        - People
+      intended-effect:
+        - Interaction Capability / User assistance (understanding of outages)
+      temporal: new
+      google-ai:
+        - mitigate this
+      coding:
+        - Streamline/refine (customer communication)
+
+    
+  # Infrastructure team: (AI-6 through AI-8)
+
+  AI-6: 
+    # Write a redis runbook based on outage to guide redis troubleshooting. We learned some lessons about apps interacting with Redis during the outage and recording this will increase knowledge across engineering.
+
+    motivation:
+      experience: There was an error-prone high default configuration for retries (500) and troubleshooting using slowlog and monitor to determine where load was coming from
+      lifecycle:
+        - Response / Diagnosis
+      tags:
+        - human factors (knowledge)
+        - defect (high retry configuration)
+      iso:
+        - Modifiability
+        - Operability
+
+    item:
+      action: Record lessons about apps+Redis interaction
+      target: Redis troubleshooting runbook
+      goal: Preserve learning from Redis interactions and spread knowledge
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Diagnosis
+      sts:
+        - Process / Incident Response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / Operability (troubleshooting runbooks)
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding:
+        - Streamline/refine (troubleshooting)
+
+    
+  AI-7: 
+    # Set up second postmortem for SMS issues. We feel that there is more to explore and learn here.
+
+    motivation:
+      experience: As part of full recovery checks, they found that 2FA codes were not being sent to customers due to the rush of logins to the system and a bottleneck in sending them due to balancing of SMS phone numbers
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - high load (surge from logins and bottleneck)
+        - bottleneck
+        - delayed recovery (2FA codes not being sent and got hit with load)
+      iso:
+        - Capacity
+        - Scalability
+
+    item:
+      action: Perform postmortem (for a subissue that was seen)
+      target: UNCLEAR
+      goal: Learn more about why SMS bottleneck occurred
+
+      action-type:
+        - formative / investigative
+      target-type:
+        - Other
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    
+  AI-8: 
+    # We experienced some small delays in triage due to the current setup in our workroom.  [..] Stock Operations Center conference room with readily-available testing equipment so customer experience can be more easily evaluated from the Operations Center during an outage. Our standard operating procedure of engineers using their own devices to test during an outage was stretched during this one. Dedicated test stations will make debugging and verifying progress simpler.
+
+    motivation:
+      experience: The workroom used for triage relied on ad hoc testing setups (using engineers own devices to test) for debugging and verifying progress
+      lifecycle:
+        - Response / Diagnosis
+        - Response / Mitigation
+      tags:
+        - using engineer's devices
+        - delayed triage (using engineers own devices to test)
+      iso:
+        - Recoverability
+
+    item:
+      action: Stock operations center with testing equipment
+      target: Testing hardware in operations center
+      goal: Improve debugging and verifying progress for responders
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Environment
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+      coding: 
+        - Streamline/refine (with test machines during incidents)
+
+    other:
+      completed: true
+
+    
+  # Support team: (AI-9)
+
+  AI-9: 
+    # [Support] 11:10 We noticed our status page was loading slowly, and immediately contacted our status page vendor. They updated their status page to explain that their databases were under heavy load, and were actively working on a resolution. [We will...] Follow up with status page vendor to improve issquareup.com reliability.
+
+    motivation:
+      experience: Status page was slow during the incident, since they were under heavy load
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - high load (third party dependency, potentially unrelated)
+        - slow operation (loading status page)
+      iso:
+        - Self-descriptiveness 
+
+    item:
+      action: Follow up with status page vendor
+      target: Status page (run by third party vendor)
+      goal: Ensure status page is reliable under load (not slow)
+
+      action-type:
+        - formative / other # schedule or review
+      target-type:
+        - Incident response tools and process / Communication / Status Page
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Interaction Capability / User assistance
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - prevent
+      coding:
+        - Handle repeat event

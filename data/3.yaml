@@ -1,0 +1,469 @@
+#
+# 3.yaml | Datadog
+# https://www.datadoghq.com/blog/2020-09-25-infrastructure-connectivity-issue/
+#
+# A failure of the internal service discovery and dynamic configuration system was caused by a DNS record type (domain does not exist type) not being cached leading to a thundering herd.
+#
+#
+# Researcher Notes:
+#
+
+IR-3:
+  extractedBy: Matt
+  reviewedBy: 
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # Post-incident, all engineering teams have been involved in forensic investigations in order to understand in depth what happened and summarize all the findings in a copious collection of internal postmortems. Here is the gist of what we are prioritizing now to avoid this type of failure in the future, with work already underway and continuing into Q4 ’20 and beyond.
+    - Temporal nature of FDSE
+
+    # In all regions, the Datadog platform is deployed across multiple availability zones and is routinely tested for resilience against the random loss of nodes in all availability zones. This incident was the result of a kind of failure that we had not experienced before.
+    - Unexpected
+
+    # In prior incidents we were able to get a sense of an ETA relatively quickly because we could make quantitative predictions on how fast a patch would be deployed or how soon a backlog of incoming data could be absorbed. In the best cases we were able to mitigate the internal incident before it could become customer-facing.
+    - Retrospective on past incidents
+
+    # Post-incident, all engineering teams have been involved in forensic investigations in order to understand in depth what happened and summarize all the findings in a copious collection of internal postmortems. Here is the gist of what we are prioritizing now to avoid this type of failure in the future, with work already underway and continuing into Q4 ’20 and beyond.
+    - Many postmortems, this one only includes a subset of the work
+    - Similar: "this type of failure"
+    
+    # The unfortunate irony of this incident is that there would have been little to no impact if the service discovery and configuration system had been frozen so as to always return the same answers when queried. Instead, by favoring fast, convenient configuration updates and flexible service discovery we inadvertently coupled systems together in subtle ways.
+    - Tradeoffs: how previous tradeoff decisions (about a month ago) led to this incident
+
+
+  ######################################
+  # AIs
+  ######################################
+
+
+  # Section: Further decouple the control plane and the data plane
+
+
+  AI-1:
+    # We have split service discovery and dynamic configuration into separate services.
+
+    motivation:
+      experience: Core dependencies (service discovery and dynamic configuration) were located within the same service and that service was overwhelmed by traffic
+      behavior: Overwhelmed by traffic
+      context:
+        factors:
+          - design (spof, where service provides two functionalities - control plane and data plane)
+        scenarios:
+          - high load (thundering herd, on cache miss)
+      lifecycle:
+        - Failure / Downstream Effects # was: Failure / Triggering
+      tags:
+        - design factor (service provides two functionalities - control plane and data plane)
+        - spof (risk of outage, hard dependencies)
+        - high load (thundering herd, on cache miss)
+        - cache (missed storm)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Split into separate services
+      target: Service discovery & dynamic configuration service (multi AZ cluster)
+      goal: Decouple the control plane and the data plane
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Execution structure
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Fault tolerance
+      temporal: "previously started" # We had already started to remove that coupling in the following ways, and we will double-down:
+      google-ai:
+        - prevent
+      
+    other:
+      timing: started previously / double down
+
+    themes:
+      - decouple / control and data planes ("coupled in subtle ways")
+      - tradeoffs / convenient flexible fast vs coupled and brittle
+
+  AI-2:
+    # We are building additional layers of cache to make DNS queries for the purpose of service discovery resilient to a prolonged loss of the core service discovery system.
+
+    motivation:
+      experience: Core dependencies (service discovery and dynamic configuration) were located within the same service and that service was overwhelmed by traffic
+      behavior: Overwhelmed by traffic
+      context:
+        factors:
+          - design (spof, where service provides two functionalities - control plane and data plane)
+        scenarios:
+          - high load (thundering herd, on cache miss)
+      
+      
+      
+      lifecycle:
+        - Failure / Downstream Effects # was: Failure / Triggering
+      tags:
+        - design factor (service provides two functionalities)
+        - spof (risk of outage, hard dependencies)
+        - high load (thundering herd, on cache miss)
+        - cache (missed storm)
+      iso:
+        - Availability # TODO: Probably something else?
+        - Fault tolerance
+
+    item:
+      action: Add additional caching layers
+      target: Cache layer for DNS queries (additional)
+      goal: Decouple the control plane & the data plane (for prolonged loss)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Architecture and interactions / Caching and buffering
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: "previously started" # We had already started to remove that coupling in the following ways, and we will double-down:
+      google-ai:
+        - prevent
+
+    other:
+      timing: started previously / double down
+
+    themes:
+      - decouple / caching
+      - failure duration / "resilient to a prolonged ..."
+      - tradeoffs / convenient flexible fast vs coupled and brittle
+
+  AI-3:
+    # We are hardening all components to make them resilient to a prolonged loss of service discovery and dynamic configuration. When they are unavailable, services that process incoming data or answer interactive queries should fail “closed” and continue to work without degradation.
+
+    motivation:
+      experience: Core dependencies (service discovery and dynamic configuration) were located within the same service and that service was overwhelmed by traffic and was down for an extended time
+      behavior: Stopped working
+      context:
+        scenarios:
+          - duration (of incident)
+      
+
+
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (service provides two functionalities)
+        - spof (risk of outage, hard dependencies)
+        - extended downtime
+        - propagation (failure to dependency via hard dependency)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Harden interaction components to make them fail closed when dependency unavailable
+      target: Dependents of service discovery & dynamic configuration service
+      goal: Decouple the control plane and the data plane
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Other
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: "previously started" # We had already started to remove that coupling in the following ways, and we will double-down:
+      google-ai:
+        - prevent
+
+    other:
+      timing: started previously / double down
+      
+    themes:
+      - decouple / "fail closed and continue to work"
+      - failure duration / "resilient to a prolonged ..."
+      - tradeoffs / convenient flexible fast vs coupled and brittle
+
+  AI-4:
+    # With this change in place and its impact missed during the change review, the conditions were set for an unforeseen failure starting with a routine operation a month later. [..] We will regularly test the types of failures we experienced.
+
+    motivation:
+      experience: The effects of the change (introducing dependencies in core services) was missed during change review,
+      behavior: Missed impact during change review
+      context:
+        factors:
+          - design (service provides two functionalities)
+          - defect (to configuration to use a local DNS resolver rather than local file)
+
+
+
+      lifecycle:
+        - Pre-incident
+      tags:
+        - design factor (service provides two functionalities)
+        - defect (to configuration to use a local DNS resolver rather than local file)
+      iso:
+        - Fault tolerance
+        - Faultlessness
+
+    item:
+      action: Regularly test the types of failures
+      target: Testing processes
+      goal: Decouple the control plane and the data plane
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Testing # reguarly test the types of failures, suggests it is a change to the process rather than a adding a unit test.
+      sts:
+        - Process / Testing procedures
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: "previously started" # We had already started to remove that coupling in the following ways, and we will double-down:
+      google-ai:
+        - prevent
+
+    other:
+      timing: started previously / double down
+
+  AI-5:
+    # Improve the resilience of service discovery. The need to register and deregister services won’t go away but we must support it with a system that is not a single point of failure (be it distributed or not).
+
+    motivation:
+      experience: Core dependencies (service discovery and dynamic configuration) were located within the same service and that service was overwhelmed by traffic
+      behavior: Service discovery system degraded
+      context:
+        factors:
+          - design factor (spof, service provides two functionalities)
+      
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (service provides two functionalities)
+        - spof (risk of outage, hard dependencies)
+      iso:
+        - Availability # TODO: Probably something else?
+        - Fault tolerance
+
+    item:
+      action: UNCLEAR
+      target: Service discovery service (multi AZ cluster)
+      goal: Improve resiliency by eliminating single point of failure
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      timing: future
+
+    themes:
+      - single point of failure (remove)
+
+  AI-6:
+    # Improve the resilience of the web tier. Because the web tier sits in the middle of all queries made by our customers, it must be among the last systems to fail. This means reducing the number of hard dependencies to the absolute minimum [..AI-8..] to make sure pages still load if soft dependencies fail downstream.
+
+    motivation:
+      experience: Web tier's core dependencies (service discovery and dynamic configuration) were located within the same service were unavailable
+      behavior: Failure propagated to web tier
+      context:
+        factors:
+          - design (spof, where service provides two functionalities - control plane and data plane)
+      
+      
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (service provides two functionalities)
+        - spof (risk of outage, hard dependencies)
+        - propagation (failure to dependency via hard dependency)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Reduce the number of hard dependencies
+      target: Web tier hard dependencies 
+      goal: Improve resiliency
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: future
+    
+    themes:
+      - decouple / make dependencies soft
+
+  AI-7:
+    # Improve the resilience of the web tier. Because the web tier sits in the middle of all queries made by our customers, it must be among the last systems to fail. This means [..AI-7..] with regular tests to make sure pages still load if soft dependencies fail downstream.
+
+    motivation:
+      experience: Web tier's core dependencies (service discovery and dynamic configuration) were located within the same service were unavailable
+      behavior: Failure propagated to web tier
+      context:
+        factors:
+          - design (spof, where service provides two functionalities - control plane and data plane)
+      
+      
+      lifecycle:
+        - Failure / Downstream Effects
+      tags:
+        - design factor (service provides two functionalities)
+        - spof (risk of outage, hard dependencies)
+        - propagation (failure to dependency via hard dependency)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Regularly test to make sure pages work upon dependency failure
+      target: Tests against soft deps for web tier
+      goal: Improve resiliency
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Activities
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Fault tolerance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: future
+    
+    themes:
+      - decouple / make dependencies soft
+
+  AI-8:
+    # Our external response followed our usual playbook: update the status page when the issue is systemic and post updates every 30 minutes until resolution. In hindsight we were not as effective as we should have been to communicate clearly and unequivocally the impact of the incident and the steps we were taking. In this case, with so many services impacted, we scaled our internal response accordingly but did not do the same with our external response and our communication. We focused too much on the public status page and did not have a dedicated role in incident response to make sure our customers received timely updates if they were not watching our status page. [We will...] Improve our external response. It starts with having a dedicated role with clear processes to disseminate updates about high visibility incidents throughout. 
+
+    motivation:
+      experience: There was a delay in posting a status and they did not effectively communicate the impact outside the status page
+      behavior: Delayed and ineffective communication
+      context:
+        factors:
+          - design (non-scaling external response process, focused on one communication channel only)
+        scenario:
+          - scope (incident affecting many services)
+
+
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (slow, delayed, unclear)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: Add dedicated support role to communicate to customers
+      target: Customer communication and support (staffing)
+      goal: Improve external response (dedicated role to quickly disseminate information)
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - People / Organizational structure (customer communication)
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: future
+
+  AI-9:
+    # Improve our external response. It also includes having clearer communication on the impact of an incident as it develops. [TODO]: Is this the same as AI-8?
+    motivation:
+      experience: There was a delay in posting a status and they did not effectively communicate the impact
+      behavior: Delayed and ineffective communication
+      context:
+        factors:
+          - design (non-scaling external response process, focused on one communication channel only) # [TODO]
+        scenario:
+          - scope (incident affecting many services) # [TODO]
+      
+      
+      
+      lifecycle:
+        - Response / Customer communication
+      tags:
+        - customer communication (slow, delayed, unclear)
+      iso:
+        - Self-descriptiveness
+
+    item:
+      action: UNCLEAR
+      target: Customer communication procedures
+      goal: Improve external response (clearer communication)
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Communication
+      sts:
+        - Process / Customer communication
+      intended-effect:
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: future
+
+  AI-10:
+    # Provide a clear playbook in case of regional failure. Regardless of how much resilience we build into a Datadog instance running in a single region, there will remain a risk that the region becomes unavailable for one reason or another. We are committed to providing options for our customers to choose for contingency.
+
+    motivation:
+      experience: UNCLEAR (failure as a whole across the region)
+      lifecycle: 
+        - Response / Mitigation # (customer options)
+      behavior: Regional failure # [TODO]
+      context:
+        scenario:
+          - scope (incident caused whole region to degrade)
+
+    item:
+      action: Provide a playbook for regional failure
+      target: Incident response documentation and procedures
+      goal: Give customers options during downtimes
+
+      action-type:
+        - evo / add
+      target-type:
+        - Incident response tools and process / Playbook
+      sts:
+        - Process / Incident response / Documentation and procedures
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      timing: future

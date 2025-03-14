@@ -1,0 +1,134 @@
+#
+# 64.yaml | Travis CI
+# https://www.traviscistatus.com/incidents/khzk8bg4p9sy
+#
+# Researcher Notes:
+#
+
+IR-64:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  patterns:
+    # - Improve-Understanding:
+    #   - AI-1 is to ensure that behavior is normal for expected ranges and to formalize ranges where it needs to be good
+    #   - AI-2 collects data to help operators see status of system and for diagnosis
+    
+  memos:
+    # our entire Engineering team has implemented a number of changes to help prevent similar problems in the future.
+    - Similarity
+
+    # We try to operate on the principle of trust, but verify, so we decided not to give an "all clear" until we'd done some load testing.
+    - Evolution must follow testing before knowing we are good to go (ensuring similar incident won't occur again)
+
+  ######################################
+  # AIs
+  ######################################
+
+  #
+  # Going Forward?
+  #
+
+  AI-1: 
+    # We are preparing plans for more well defined load tests of our OS X infrastructure. As the OS X/iOS build workload represents a unique type of workload in terms of CPU and IO utilization, and the time these builds usually take, compared to the majority of our Linux builds. This testing will include multiple build jobs that represent the common types of repositories we see customers building and we will have better and more detailed metrics that we'll gather during these load tests. So you can look for a scheduled maintenance announcement in the future for this.
+
+    motivation:
+      experience: VM cluster reached maximum capacity when a janitor process failed to clean up resources. Understanding resource usage, sizing, and time is unique compared to other workloads they supported.
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - limit hit (reached max capacity when cleanup process failed)
+        - complexity (of system)
+      iso:
+        - Operability
+
+    item:
+      action: Perform well-defined load tests for OS X infrastructure
+      target: Testing activities
+      goal: More accurately represent real traffic to ensure that it behaves well under load
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Tests / Activities
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Performance Efficiency / Resource utilization
+      temporal: new
+      google-ai:
+        - prevent
+
+
+  AI-2:
+    # We are going to make improvements to what metrics we collect when we create, run, and delete build VMs on the OS X infrastructure. We will also improve how these metrics are reported under failure conditions. These metrics improvements will help us build better alerts to help us avoid these kinds of issues in the future.
+
+    motivation:
+      experience: VMs were leaked for several days before issue was discovered
+      lifecycle:
+        - Response / Detection
+        #- Pre-incident # [TODO] Happened before?
+      tags:
+        - delayed detection (leak occurred for several days, missing monitoring)
+        - missing monitoring (on resource usage, leak)
+        - limit hit (reached max capacity)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve metrics that are collected and how they are reported under failure
+      target: Monitoring for services (Build systems for OS X Infrastructure)
+      goal: Help us build better alerts to avoid these kinds of issues
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Maintainability / Analysability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Monitor build systems better
+
+
+  AI-3:
+    # Some of the impact of this incident, in particular how we do a global stop/start of builds, and how they are re-queued, will be improved in ways that will result in less impact to running builds. These will happen as we build and ship some fundamental improvements to our build agent software.
+
+    motivation:
+      experience: Janitor process failed to cleanup VMs leading to higher re-queues
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - missing authentication
+        - automation failure (could not clean up resources)
+        - backlog
+      iso:
+        - Other
+
+    item:
+      action: Improve how builds are started and stopped and re-queued globally
+      target: Job execution service (CI/CD)
+      goal: Reduce impact on running builds
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core 
+      intended-effect:
+        - Interaction Capability / Operability
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - prevent

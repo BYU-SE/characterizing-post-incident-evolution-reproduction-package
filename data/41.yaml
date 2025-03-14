@@ -1,0 +1,157 @@
+#
+# 41.yaml | Microsoft
+# https://web.archive.org/web/20150628011445/http://azure.microsoft.com/blog/2014/11/19/update-on-azure-storage-service-interruption/
+#
+# A performance update, once deployed, resulted in reduced capacity across many services that used Azure Storage. Storage blob front ends went into an infinite loop and could not take further traffic.
+#
+# Researcher Notes:
+#
+
+IR-41:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # When we have an incident like this, our main focus is rapid time to recovery for our customers, but we also work to closely examine what went wrong and ensure it never happens again.
+    - Purpose of FDSE, but also keeping in mind main focus is to recover quickly
+    - Similar: "ensure it never happens again"
+
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Unfortunately the issue was wide spread, since the update was made across most regions in a short period of time due to operational error, instead of following the standard protocol of applying production changes in incremental batches. [..] Ensure that the deployment tools enforce the standard protocol of applying production changes in incremental batches is always followed.
+
+    motivation:
+      experience: Update was performed quickly, in almost a global manner, instead of following standard protocol
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (global without staged)
+      iso:
+        - Operational constraint
+
+    item:
+      action: Ensure deployment tools follow protocol (staged deploys)
+      target: Deployment tools
+      goal: Ensure effects are caught before they become widespread
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Operational constraint
+      temporal: new
+      google-ai:
+        - mitigate future
+
+      memos:
+        # Ensure that the deployment tools enforce the standard protocol
+        - Best-Practice: Enforce following the 'standard protocol', since this is what led to the issue
+
+  AI-2:
+    # Once the issue was detected, the configuration change was reverted promptly. However, the Blob Front-Ends had entered into an infinite loop triggered by the update, and couldn’t refresh the configuration without a restart. This caused the recovery to take longer [..] Improve the recovery methods to minimize the time to recovery.
+
+    motivation:
+      experience: A revert didn't cause the issue to go away immediately, and a restart was required
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - manual action required (restart)
+        - delayed recovery (revert didn't work, required manual action - restart)
+      iso:
+        - Recoverability
+
+    item:
+      action: Improve (VAGUE)
+      target: Recovery methods during incident response for Blob Front-Ends
+      goal: Minimize the time to recovery
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Mitigation
+      sts:
+        - Process / Incident response
+      intended-effect:
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - mitigate future
+
+  AI-3:
+    # The configuration change for the Blob Front-Ends exposed a bug in the Blob Front-Ends, which had been previously performing as expected for the Table Front-Ends. This bug resulted in the Blob Front-Ends to go into an infinite loop not allowing it to take traffic. [..] Fix the infinite loop bug in the CPU reduction improvement from the Blob Front-Ends before it is rolled out into production.
+
+    motivation:
+      experience: A configuration change caused front ends to go into an infinite loop, was deployed
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (which activated an already existing bug)
+        - defect (latent, activated by configuration change when deployed)
+      iso:
+        - Faultlessness
+        - Availability
+
+    item:
+      action: Fix bug
+      target: Service front ends (Blob Front-Ends)
+      goal: Ensure the next deployment doesn't have the bug activated
+
+      action-type:
+        - evo / alter
+      target-type:
+        - General services
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Faultlessness
+        - Reliability / Availability
+      temporal: new
+      google-ai:
+        - prevent
+
+  AI-4:
+    # There was an Azure infrastructure issue that impacted our ability to provide timely updates via the Service Health Dashboard. As a mitigation, we leveraged Twitter and other social media forums. We also provided targeted communication to the Management Portal for affected customers as available. As a result of the impact to the Service Health Dashboard, timely updates were not reflected for approximately the first three hours of the outage. Downstream support tools that had dependency on the Service Health Dashboard and Management Portal were also impacted, limiting customers to create new support cases during the early phase of the outage, and our ability to update to impacted customers was delayed due to high case volumes. [..] Improve Service Health Dashboard Infrastructure and protocols.
+
+    motivation:
+      experience: There was an infrastructure issue that impacted their ability to provide timely updates (for the first 3 hours of the incident) and there was a dependency in downstream support tools and customers were unable to create support cases during the early incident
+      lifecycle:
+        - Failure / Downstream Effects # though of a different failure occurring at the same time
+        - Response / Customer communication
+      tags:
+        - dependency (potentially unrelated failure)
+        - propagation (failure to dependency, hard dependency)
+        - customer communication
+      iso:
+        - Self-descriptiveness
+        - User assistance
+
+    item:
+      action: Improve (VAGUE)
+      target: Infrastructure and protocols for service health dashboard
+      goal: Communicate to customers at all time and don't hinder their ability to open support cases
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Incident response tools and process / Communication / Support (infra and protocols)
+      sts:
+        - Tech / Infra
+        - Process / Protocols
+      intended-effect:
+        - Interaction Capability / User assistance
+        - Interaction Capability / User assistance
+      temporal: new
+      google-ai:
+        - mitigate future

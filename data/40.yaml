@@ -1,0 +1,160 @@
+#
+# 40.yaml | Venafi
+# https://venafi.com/blog/gke-webhook-outage/
+#
+#  A misconfiguration of an Kubernetes integration caused intermittent timeouts in the deploy pipeline, and eventually an indiscriminate loss of service for all customers but it was a testing platform.
+
+IR-40:
+
+  extractedBy: Matt
+  reviewedBy:
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    # We also considered but decided against disabling GKE node auto-repair.
+    - potential AI, but decided against
+
+    # We were not the first to run into this issue, an upstream issue remains open here to improve the functionality here - we’ll be following this one.
+    - link to similar issue in the kubernetes plugin that they misconfigured
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # Since then, we have configured our ValidatingAdmissionWebhook for OPA to only monitor the namespaces where policy is applicable and development teams have access. We have also only enabled the webhook for Ingress and Service resources, the only resources validated by our policy.
+
+    motivation:
+      experience: Activation check also depended upon a dependency, which was unhealthy and system required all to pass admission webhook (could not report node health, though nodes were healthy)
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - health check failing (inaccurate health assessment)
+        - inaccurate health assessment
+        - automation failure (did not allow activation)
+        - propagation (effect to peers via shared health probe)
+      iso:
+        - Fault tolerance
+        - Operational constraint # [TODO] Think about this one more
+
+    item:
+      action: Monitor only namespaces where needed
+      target: Health checking system for deployments (webhooks)
+      goal: Don't do unnecessary healthchecks
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline / Health checks
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Safety / Fail safe (resolving health check issues) 
+        - Reliability / Faultlessness
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Adjust health checking logic (restrict to certain namespaces)
+
+    themes:
+      - automation / fix deployment health checks (scope)
+
+  AI-2:
+    # Since we first deployed OPA, the documentation has been updated to reflect this change.
+
+    motivation:
+      experience: UNCLEAR
+
+    item:
+      action: Update (VAGUE)
+      target: Health checking system for deployments (documentation)
+      goal: Keep documentation up to date
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Deployment / Pipeline / Health checks (documentation)
+      sts:
+        - Process / Third-party documentation
+      intended-effect:
+        - Interaction Capability / Operability (good documentation)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Refine documentation
+
+  AI-3:
+    # We have also added a liveness probe to ensure OPA is restarted when it becomes unresponsive and [continued below ...]
+
+    motivation:
+      experience: Dependent service (OPA) was unresponsive preventing upgrade to complete 
+      lifecycle:
+        - Failure / Inception # [TODO] Is that right?
+      tags:
+        - defect (bad configuration)
+        - health check missing (action is to add one)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Add liveness probe with auto-restart action
+      target: Health checking system for 3rd-party plugins
+      goal: Ensure plugin restarts when unresponsive
+
+      action-type:
+        - evo / add
+      target-type:
+        - Fleets / Health checking systems
+      sts:
+        - Tech / Infra
+      intended-effect:
+        - Reliability / Availability
+        - Reliability / Recoverability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Restart on failed liveness check
+
+    themes:
+      - automation / mitigate by restart
+
+  AI-4:
+    # [... continued from above] have updated the documentation.
+
+    motivation:
+      experience: Dependent service (OPA) was unresponsive preventing upgrade to complete 
+      lifecycle:
+        - Failure / Inception # [TODO] Is that right?
+      tags:
+        - defect (bad configuration)
+      iso:
+        - Fault tolerance
+
+    item:
+      action: Document a completed change (see AI-3)
+      target: Health checking system for 3rd-party plugins
+      goal: Document process that ensures plugin restarts when unresponsive
+
+      action-type:
+        - evo / alter
+      target-type:
+        - Fleets / Health checking systems (documentation)
+      sts:
+        - Process / Third-party documentation
+      intended-effect:
+        - Interaction Capability / Operability (documentation for 3rd parties)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Document change

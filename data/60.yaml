@@ -1,0 +1,204 @@
+#
+# 60.yaml | Travis CI
+# https://www.traviscistatus.com/incidents/sxrh0l46czqn
+#
+# A new version of the service was deployed and builds were being incorrectly marked as failed, so the deployment was rolled back, but the rollback was unsuccessful as the previous version (ie, the version to rollback to) was not marked ("tagged") correctly in the source (Docker Hub).
+# 
+#
+# Researcher Notes:
+#
+
+IR-60:
+
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+  
+  patterns:
+    - Across-Software-Life-Cycle / Test to recovery:
+      - AI-3 testing diversity ("catch ... before they impact ...")
+      - AI-1 alerting 
+      - AI-2 recovery or rollback (responders)
+      - AI-4 recovery (more automatic without restarts)
+    
+    - Over time / First-Fast-Then-Better:
+      - AI-1 alerting is already done
+      - AI-3 requires more planning ("looking at how ...")
+      - AI-2 "both incremental and radical ways ..."
+      - AI-4 "bigger picture" is an architectural change
+
+  memos:
+    - Largely discussing and planning changes, both small and large, but they haven't committed to anything more than monitoring
+
+    # discussing both incremental and radical ways to change
+    - Realizing that fixes may come in different flavors, but they need something different here.
+
+  ######################################
+  # AIs
+  ######################################
+
+  AI-1:
+    # We also learned we did not have alerting which included the errors logged when the image pulls were failing to find v2.5.0 [and a contributing factor was] missing coverage in terms of alerting for the errors which were being logged when the image pulls failed [...] As part of the incident resolution, we created additional alerting, so that we know we'll be notified about similar errors in the future.
+
+    motivation:
+      experience: There was no alerting overage for when image pull failed to find a version
+      lifecycle:
+        - Response / Detection  # [TODO] Are these right?
+      tags:
+        - missing monitoring
+      iso:
+        - Analysability
+
+    item:
+      action: Add additional alerting
+      target: Alarming system
+      goal: Notify about similar errors in the future
+
+      action-type:
+        - evo / add
+      target-type:
+        - Monitoring and metrics
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Safety / Hazard warning
+      temporal: new
+      google-ai:
+        - detect
+
+    other:
+      modification: Alarm on already logged errors
+      activity: add alarm
+      level: component interactions
+
+    memos:
+      # so that we know we'll be notified about similar errors in the future.
+      - Similar: Conditions, for errors logged when the image pulls were failing to find a tag 
+
+  AI-2:
+    # It currently can take us multiple hours to fully cycle out instances because of the safe guards we have in place to do this recycling in a fashion that does not interrupt longer running (up to 2 hours for travis-ci.com users) jobs [and so] we are discussing both incremental and radical ways to change our instance replacement process and tooling, so that we can more quickly deploy and rollback future worker versions.
+
+    motivation:
+      experience: It takes a long time to fully cycle out an instance due to safeguards to not interrupt long processes
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (instance replacement)
+        - slow operation (cycle out instances)
+      iso:
+        - Time behavior
+
+    item:
+      action: Discuss incremental and radical changes (VAGUE)
+      target: Resource (cloud instances) management process & tooling
+      goal: Be able to more quickly deploy and rollback future worker versions
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Fleets / Management systems
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Recoverability
+        - Interaction Capability / Operability (tools during incidents)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Manual replacement process (relax safeguards)
+      activity: discuss
+
+    themes:
+      - responder options
+      - ungraceful recovery
+      - tradeoffs (incremental and radical alternatives to be quicker)
+
+    memos:
+      - Incremental and radical explorations in the same AI
+      - Thoughtful: They are exploring broad possibilities with care
+      - Routine operations and normally fine: time pressures of an emergency
+
+  AI-3:
+    # A change appears to have effects on how bash handles exit codes [which was not] detected by our staging environment tests and revealed insufficient diversity in how our tests reflect the variety of builds [our] users are running [so] we are looking at how we can better improve the diversity of our tests in staging, to help better catch these kinds of regressions before they impact user builds.
+
+    motivation:
+      experience: Staging env tests did not catch exit code handling defect
+      lifecycle:
+        - Pre-incident
+      tags:
+        - defect (exit code handling in all environments)
+        - tests (diversity of, should have caught before)
+      iso:
+        - Risk identification # [TODO] Need to standardize on when it is risk identification vs Operational constraint for staging and pre-production tests. Do this across all
+
+    item:
+      action: Investigate improvements to diversity of our tests in staging
+      target: Test suite in staging environment
+      goal: Catch these kinds of regressions before they impact customers
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Tests / Suite
+      sts:
+        - Tech / Support
+      intended-effect:
+        - Reliability / Faultlessness (catch before)
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Test under more conditions (diversity)
+      activity: investigate
+      level: component
+
+    memos:
+      - Commitment: Wishy-washy language "we are looking at how" which may either be a reduced level of commitment or simply very formative.
+      - Similar: Condition, to catch "these kinds of regressions"
+
+  AI-4:
+    # Additionally, due to the nature of how we provision the auto-scaled EC2 instances which run the builds, because builds are run in a push based fashion, and the manner in which we try to gracefully finish long running builds (travis-ci.com users have a timeout limit of 2 hours) [...] It currently can take us multiple hours to fully cycle out instances because of the safe guards we have in place to do this recycling in a fashion that does not interrupt longer running jobs. [...] Bigger picture, we [are] discussing the potential for moving to a more agent/pull based process for running each job, which would let us more easily replace the worker version without requiring us to restart user builds.
+
+    motivation:
+      experience: It takes a long time to fully cycle out an instance due to safeguards to not interrupt long processes
+      lifecycle:
+        - Response / Mitigation
+      tags:
+        - delayed mitigation (instance replacement)
+        - slow operation (cycle out instances)
+        - limit bounds (time to run long builds is high)
+      iso:
+        - Time behavior
+
+    item:
+      action: Discuss re-architect build process (move to agent/pull based process)
+      target: Job execution system & "worker" versioning (build process)
+      goal: Enable easier updates to worker versions
+
+      action-type:
+        - formative / discover options
+      target-type:
+        - Architecture and interactions / Dependency structure
+      sts:
+        - Tech / Core
+      intended-effect:
+        - Reliability / Recoverability
+        - Interaction Capability / Operability (during incidents)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Remodel build system (around pull based model) (VAGUE)
+      activity: discuss
+      level: system
+
+    memos:
+      - Commitment: Wishy-washy language "discussing the potential" which may either be a reduced level of commitment or simply very formative.
+      - Similar to AI-2, may overlap in many ways and just suggest a potential idea

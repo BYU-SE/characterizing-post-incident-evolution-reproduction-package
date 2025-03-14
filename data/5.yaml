@@ -1,0 +1,172 @@
+#
+# 5.yaml | Autofarm
+# https://medium.com/autofarm-network/21-april-2021-venus-vaults-post-mortem-1518ae7399c6
+#
+# A version upgrade of Venus Protocol (a block chain/financial product managed by a separate team of "community" developers) without the knowledge of Autofarm that introduced a new fee structure. "Although steps were taken to prepare for this event, our vaults were still unable to fully cater for this fee" and manual withdraw actions were required by users.
+#
+# Autofarm incident report: https://medium.com/autofarm-network/21-april-2021-venus-vaults-post-mortem-1518ae7399c6
+# Archive Link: https://web.archive.org/web/20210901163409/https://medium.com/autofarm-network/21-april-2021-venus-vaults-post-mortem-1518ae7399c6
+#
+# Venus community post: https://blog.venus.io/a-letter-from-venus-to-community-members-and-users-ceb389210afc
+#
+# Researcher Notes:
+#
+
+IR-5:
+  extractedBy: Matt
+  reviewedBy: js
+
+  ######################################
+  # Meta
+  ######################################
+
+  memos:
+    - AI-Section-Title: Section called "Moving Forward"
+    - Theme-Of-Trigger: Trigger and theme here is the communication and coordination btw projects
+
+  ######################################
+  # AIs
+  ######################################
+
+  # AutoSAFU protocol insurance has shown its strength in trying times like this and hence, we will continue pledging the rebates which we receive monthly from Binance’s BUIDL reward program to the AutoSAFU.
+
+  # excluded: no action proposed (part of finishing the response, maybe?)
+
+  AI-1:
+    # We will scale on the number of moderators and volunteers to have a more holistic coverage across the communities and different time zones. This way, better customer support can be provided as required by the community.
+
+    motivation:
+      experience: Poor customer support during off-hours
+      lifecycle:
+        - Response / Customer support
+      tags:
+        - customer support (during off hours)
+      iso:
+        - User assistance
+
+    item:
+      action: Add moderators across "communities and different time zones"
+      target: Customer communication and support (moderators and volunteers)
+      goal: Improve customer support across timezones
+
+      action-type:
+        - evo / add # add to existing community
+      target-type:
+        - Incident response tools and process / Communication / Support
+      sts:
+        - People / Organizational structure (customer support)
+      intended-effect:
+        - Interaction Capability / User assistance (customer support)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Hire customer support people (across TZs)
+      activity: hire (across timezones)
+
+  AI-2:
+    # [Incident response was slow because] most of the team lives in the GMT+8 timezone [...] We will onboard more developers for more coverage on the different time zones so that the protocol has more bases covered even during the team’s wee hours.
+
+    motivation:
+      experience: Slow incident response due to off-hours
+      lifecycle:
+        - Response / Triage
+      tags:
+        - delayed response (during off-hours)
+        - on-call coverage (missing)
+      iso:
+        - Recoverability
+
+    item:
+      action: Recruiting developers in more timezones
+      target: Customer communication and support (engineering staffing)
+      goal: Improved incident response during "team's wee hours"
+
+      action-type:
+        - evo / alter # add to existing devs
+      target-type:
+        - Incident response tools and process / Communication / Support (staff)
+      sts:
+        - People / Organizational structure (staffing)
+      intended-effect:
+        - Interaction Capability / Operability (timely incident response and around the clock)
+      temporal: new
+      google-ai:
+        - mitigate future
+
+    other:
+      modification: Hire developers (responders across TZs)
+      activity: hire (across timezones)
+
+  AI-3:
+    # Unbeknownst to the Autofarm team, Venus Protocol’s VIP-12 part 1 was executed [...] We will set up an internal community that focuses on monitoring the different updates of the projects which we interact with on our platform (vaults which we deploy, DEXes which we integrate into AutoSwap and tokens which are whitelisted on our platform)
+
+    motivation:
+      experience: A dependency change occurred unbeknownst to the team, which added a fee structure
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (feature enabled - third party dependency change)
+        - dependency change (third party)
+      iso:
+        - Fault tolerance (to changes in dependency)
+        - Interoperability 
+
+    item:
+      action: Setup internal community (to monitor 3rd party projects)
+      target: Inter-project coordination and communication (support teams)
+      goal: Maintain awareness of changes made by integrated projects
+
+      action-type:
+        - evo / add
+      target-type:
+        - SDLC / Development # Other
+      sts:
+        - People / Organizational structure
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - prevent # is not reactive rather it is to forecast changes in the future
+
+    other:
+      modification: Hire or setup internal community to monitor 3rd party projects
+      activity: setup team
+
+    memos:
+      - Improving-Understanding: Unexpected, unplanned change
+
+  AI-4:
+    # We will work more closely with these projects in a BSC Alliance to update the various projects who are interdependent to contribute to a thriving BSC community. (There is already an official BSC Ecosystem Partner Telegram Channel created by the Binance Chain team, better coordination can be done via such channels)
+
+    motivation:
+      experience: A dependency change occurred unbeknownst to the team, which added a fee structure
+      lifecycle:
+        - Failure / Inception
+      tags:
+        - deployment (feature enabled - third party dependency change)
+        - dependency change (third party)
+      iso:
+        - Fault tolerance (to changes in dependency)
+        - Interoperability
+
+    item:
+      action: (Improve process to) keep interdependent projects updated on changes (VAGUE)
+      target: Inter-project coordination and communication (VAGUE)
+      goal: Better coordination between integrated (third-party) projects
+
+      action-type:
+        - evo / alter # work "more" closely
+      target-type:
+        - SDLC / Development # Other
+      sts:
+        - Process / Development methodology # / Organization and coordination process
+      intended-effect:
+        - Interaction Capability / Operability
+      temporal: new
+      google-ai:
+        - prevent
+
+    other:
+      modification: Formalize cross project coordination process
