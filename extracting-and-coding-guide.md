@@ -8,7 +8,7 @@ These YAML properties capture aspects of the incident that influenced the AI. We
 
 * `experience:` A summary of the incident experience(s) that influenced the AI. For example: *Service became overloaded during a traffic spike.*
 
-* `stream:` During what "stream" or stage of the incident did the experience occur in? At the top level, these are the failure and the response, with a sub-category after the slash. For example: *Failure / Triggering.*
+* `lifecycle:` During what stage of the incident did the experience occur in? At the top level, these are the failure and the response, with a sub-category after the slash. For example: *Failure / Inception.*
 
 * `iso:` The ISO 25010 characteristics the experience relates to. For example: *Capacity.*
 
